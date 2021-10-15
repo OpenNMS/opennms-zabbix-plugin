@@ -1,5 +1,7 @@
 # OpenNMS Zabbix Plugin
 
+This plugin is an effort to have OpenNMS integrate with the Zabbix Agent and leverage the existing knowledge base of Zabbix templates available.
+
 ## Building
 
 Build and install the plugin into your local Maven repository using:
@@ -26,3 +28,4 @@ Run a collection attemp:
 ```
 collect org.opennms.plugins.zabbix.ZabbixAgentCollector 127.0.0.1
 ```
+
