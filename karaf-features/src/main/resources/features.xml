@@ -11,6 +11,7 @@
         <bundle dependency="true">mvn:org.apache.commons/commons-jexl3/${jexl.version}</bundle>
         <bundle dependency="true">mvn:io.dropwizard.metrics/metrics-core/${metrics.version}</bundle>
         <bundle dependency="true">mvn:javax.ws.rs/javax.ws.rs-api/2.1.1</bundle>
+        <bundle dependency="true">mvn:org.yaml/snakeyaml/1.29</bundle>
         <bundle>mvn:org.opennms.plugins.zabbix/zabbix-plugin/${project.version}</bundle>
     </feature>
 
