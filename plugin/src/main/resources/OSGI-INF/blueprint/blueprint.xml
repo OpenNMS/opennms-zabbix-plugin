@@ -8,7 +8,9 @@
     <!-- Configuration stored in $OPENNMS_HOME/etc/org.opennms.plugins.zabbix.cfg file -->
     <cm:property-placeholder id="zabbixPluginProperties" persistent-id="org.opennms.plugins.zabbix" update-strategy="reload">
         <cm:default-properties>
-            <cm:property name="key" value="http://127.0.0.1:8888/target" />
+            <!-- just a placeholder -->
+            <!-- maybe point to additional templates sources? -->
+            <cm:property name="key" value="value" />
         </cm:default-properties>
     </cm:property-placeholder>
 

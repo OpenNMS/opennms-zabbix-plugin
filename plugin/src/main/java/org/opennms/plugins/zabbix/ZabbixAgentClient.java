@@ -11,6 +11,8 @@ import java.util.Objects;
 
 /**
  * TODO: Better handling of unsupported keys i.e. ZBX_NOTSUPPORTEDUnsupported item key. or ZBX_NOTSUPPORTEDToo many parameters.
+ * TODO: Support many keys in one session
+ * TODO: Full async communication and async API (could be exposed as something like CompletableFuture<Resuts> getKeys(String... keys))
  */
 public class ZabbixAgentClient implements Closeable {
     public static final int DEFAULT_PORT = 10050;
