@@ -1,0 +1,19 @@
+<events xmlns="http://xmlns.opennms.org/xsd/eventconf">
+    <event>
+        <uei>uei.opennms.org/zabbixPlugin/sendEventSuccessful</uei>
+        <event-label>Zabbix: Successfully sent event</event-label>
+        <descr>Successfully sent event via REST API for alarm with reduction key: %parm[reductionKey]%</descr>
+        <logmsg dest="logndisplay">Zabbix: Successfully sent event for alarm: %parm[reductionKey]%</logmsg>
+        <severity>Normal</severity>
+        <alarm-data reduction-key="%uei%:%parm[reductionKey]%" alarm-type="2"
+                    clear-key="uei.opennms.org/zabbixPlugin/sendEventFailed:%parm[reductionKey]%"/>
+    </event>
+    <event>
+        <uei>uei.opennms.org/zabbixPlugin/sendEventFailed</uei>
+        <event-label>Zabbix: Failed to forward event</event-label>
+        <descr>Failed to sent event via REST API for alarm with reduction key: %parm[reductionKey]%. Message is: %parm[message]%</descr>
+        <logmsg dest="logndisplay">Zabbix: Failed to sent event for alarm: %parm[reductionKey]%</logmsg>
+        <severity>Critical</severity>
+        <alarm-data reduction-key="%uei%:%parm[reductionKey]%" alarm-type="1" />
+    </event>
+</events>
