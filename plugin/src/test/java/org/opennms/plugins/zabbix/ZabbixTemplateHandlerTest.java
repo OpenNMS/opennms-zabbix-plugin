@@ -1,8 +1,7 @@
 package org.opennms.plugins.zabbix;
 
-import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
 
 import java.util.List;
 
@@ -14,7 +13,11 @@ public class ZabbixTemplateHandlerTest {
     public void canGetKeys() {
         ZabbixTemplateHandler zabbixTemplateHandler = new ZabbixTemplateHandler();
         List<String> keys = zabbixTemplateHandler.getKeys();
-        assertThat(keys, not(empty()));
+
+        // Verify some known keys
+        assertThat(keys, hasItem("system.cpu.num"));
+        assertThat(keys, hasItem("wmi.get[root/cimv2,\"Select NumberOfLogicalProcessors from Win32_ComputerSystem\"]"));
+
         System.out.println(keys.size() + " " + keys);
     }
 }

@@ -14,7 +14,9 @@
         </cm:default-properties>
     </cm:property-placeholder>
 
-    <bean id="zabbixAgentCollectorFactory" class="org.opennms.plugins.zabbix.ZabbixAgentCollectorFactory" />
+    <bean id="zabbixAgentCollectorFactory" class="org.opennms.plugins.zabbix.ZabbixAgentCollectorFactory" >
+        <argument ref="blueprintBundleContext" />
+    </bean>
     <service interface="org.opennms.integration.api.v1.collectors.ServiceCollectorFactory" ref="zabbixAgentCollectorFactory" />
 
 </blueprint>

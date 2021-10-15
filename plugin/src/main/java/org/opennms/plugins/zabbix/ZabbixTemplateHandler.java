@@ -4,30 +4,48 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
-import org.yaml.snakeyaml.Yaml;
+import org.opennms.plugins.zabbix.model.Item;
+import org.opennms.plugins.zabbix.model.Template;
+import org.opennms.plugins.zabbix.model.TemplateMeta;
+import org.osgi.framework.BundleContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 public class ZabbixTemplateHandler {
+    private static final Logger LOG = LoggerFactory.getLogger(ZabbixTemplateHandler.class);
+
+    private final ObjectMapper om;
+    private final BundleContext bundleContext;
+
+    public ZabbixTemplateHandler() {
+        this(null);
+    }
+
+    public ZabbixTemplateHandler(BundleContext bundleContext) {
+        this.bundleContext = bundleContext;
+        om = new ObjectMapper(new YAMLFactory());
+        om.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    }
 
     public List<String> getKeys() {
         final List<String> keys = new ArrayList<>();
 
-        final List<Map<String, Object>> allTemplates = loadTemplates();
-        for (Map<String, Object> thisTemplate : allTemplates) {
-            Map<String, Object> export = (Map<String, Object>)thisTemplate.get("zabbix_export");
-            List<Map<String,Object>> templates = (List<Map<String,Object>>)export.get("templates");
-            for (Map<String,Object> template : templates) {
-                List<Map<String,Object>> items = (List<Map<String,Object>>)template.get("items");
-                if (items == null) {
-                    continue;
-                }
-                for (Map<String,Object> item : items) {
-                    String key = (String)item.get("key");
-                    keys.add(key);
+        final List<TemplateMeta> allTemplates = loadTemplates();
+        for (TemplateMeta templateMeta : allTemplates) {
+            for (Template template : templateMeta.getZabbixExport().getTemplates()) {
+                for (Item item : template.getItems()) {
+                    keys.add(item.getKey());
                 }
             }
         }
@@ -35,39 +53,52 @@ public class ZabbixTemplateHandler {
         return keys;
     }
 
-    public List<Map<String, Object>> loadTemplates() {
-        final List<Map<String, Object>> templates = new LinkedList<>();
-        final Yaml yaml = new Yaml();
-        try {
-            for (String path : getResourceFiles("templates/")) {
-                InputStream inputStream = this.getClass()
-                        .getClassLoader()
-                        .getResourceAsStream(path);
-                Map<String, Object> obj = yaml.load(inputStream);
-                templates.add(obj);
+    public List<TemplateMeta> loadTemplates() {
+        final List<TemplateMeta> templates = new LinkedList<>();
+        if (bundleContext == null) {
+            try {
+                for (String path : getResourceFiles("templates/")) {
+                    try (InputStream inputStream = getResourceAsStream(path)) {
+                        templates.add(om.readValue(inputStream, TemplateMeta.class));
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } else {
+            final Enumeration<URL> ee = bundleContext.getBundle().findEntries("templates", "*.yaml", false);
+            while (ee.hasMoreElements()) {
+                final URL url = ee.nextElement();
+                try (InputStream inputStream = url.openStream()) {
+                    templates.add(om.readValue(inputStream, TemplateMeta.class));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
         }
         return templates;
     }
 
-
     private List<String> getResourceFiles(String path) throws IOException {
         List<String> filenames = new ArrayList<>();
-        try (InputStream in = getResourceAsStream(path);
-             BufferedReader br = new BufferedReader(new InputStreamReader(in))) {
-            String resource;
-            while ((resource = br.readLine()) != null) {
-                filenames.add(path + resource);
+        try (InputStream in = getResourceAsStream(path)) {
+            if (in == null) {
+                LOG.warn("No resources found at path: {}", path);
+                return Collections.emptyList();
+            }
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(in))) {
+                String resource;
+                while ((resource = br.readLine()) != null) {
+                    filenames.add(path + resource);
+                }
             }
         }
         return filenames;
     }
 
-    private InputStream getResourceAsStream(String resource) {
-        final InputStream in = getContextClassLoader().getResourceAsStream(resource);
-        return in == null ? getClass().getResourceAsStream(resource) : in;
+    private InputStream getResourceAsStream(String resource) throws IOException {
+        InputStream in = getContextClassLoader().getResourceAsStream(resource);
+        return in == null ? ZabbixTemplateHandler.class.getResourceAsStream(resource) : in;
     }
 
     private ClassLoader getContextClassLoader() {

@@ -2,6 +2,7 @@ package org.opennms.plugins.zabbix;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 import org.opennms.integration.api.v1.collectors.CollectionRequest;
@@ -14,8 +15,19 @@ import org.opennms.integration.api.v1.collectors.resource.NumericAttribute;
 import org.opennms.integration.api.v1.collectors.resource.immutables.ImmutableCollectionSet;
 import org.opennms.integration.api.v1.collectors.resource.immutables.ImmutableCollectionSetResource;
 import org.opennms.integration.api.v1.collectors.resource.immutables.ImmutableNodeResource;
+import org.osgi.framework.BundleContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZabbixAgentCollector implements ServiceCollector {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ZabbixAgentCollector.class);
+
+    private final BundleContext bundleContext;
+
+    public ZabbixAgentCollector(BundleContext bundleContext) {
+        this.bundleContext = Objects.requireNonNull(bundleContext);
+    }
 
     @Override
     public CompletableFuture<CollectionSet> collect(CollectionRequest collectionRequest, Map<String, Object> map) {
@@ -39,7 +51,7 @@ public class ZabbixAgentCollector implements ServiceCollector {
                             .setGroup("zabbix").setName("mem-perc-avail").setValue(vmMemoryPercentageAvailable).setType(NumericAttribute.Type.GAUGE).build());
 
             // Add other keys
-            ZabbixTemplateHandler templateHandler = new ZabbixTemplateHandler();
+            ZabbixTemplateHandler templateHandler = new ZabbixTemplateHandler(bundleContext);
             for (String key : templateHandler.getKeys()) {
                 String value = client.retrieveData(key);
                 builder.addStringAttribute(ImmutableStringAttribute.newBuilder()
@@ -54,6 +66,10 @@ public class ZabbixAgentCollector implements ServiceCollector {
 
             future.complete(collectionSet);
         } catch (IOException|NumberFormatException e) {
+            future.completeExceptionally(e);
+        } catch (Exception e) {
+            LOG.error("oops", e);
+            e.printStackTrace();
             future.completeExceptionally(e);
         }
         return future;
