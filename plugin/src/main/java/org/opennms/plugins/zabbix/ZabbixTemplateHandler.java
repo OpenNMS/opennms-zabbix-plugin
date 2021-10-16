@@ -8,9 +8,12 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
+import org.opennms.plugins.zabbix.model.DiscoveryRule;
 import org.opennms.plugins.zabbix.model.Item;
 import org.opennms.plugins.zabbix.model.Template;
 import org.opennms.plugins.zabbix.model.TemplateMeta;
@@ -36,6 +39,22 @@ public class ZabbixTemplateHandler {
         this.bundleContext = bundleContext;
         om = new ObjectMapper(new YAMLFactory());
         om.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    }
+
+    public Set<String> getDiscoveryKeys() {
+        final Set<String> discoveryKeys = new LinkedHashSet<>();
+
+        final List<TemplateMeta> allTemplates = loadTemplates();
+        for (TemplateMeta templateMeta : allTemplates) {
+            for (Template template : templateMeta.getZabbixExport().getTemplates()) {
+                for (DiscoveryRule rule : template.getDiscoveryRules()) {
+                    discoveryKeys.add(rule.getKey());
+                }
+            }
+        }
+
+
+        return discoveryKeys;
     }
 
     public List<String> getKeys() {

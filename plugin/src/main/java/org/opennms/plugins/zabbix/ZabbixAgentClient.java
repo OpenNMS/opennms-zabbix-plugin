@@ -7,12 +7,19 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * TODO: Better handling of unsupported keys i.e. ZBX_NOTSUPPORTEDUnsupported item key. or ZBX_NOTSUPPORTEDToo many parameters.
  * TODO: Support many keys in one session
  * TODO: Full async communication and async API (could be exposed as something like CompletableFuture<Resuts> getKeys(String... keys))
+ * TODO: Handle cases where the server rejects the connection - the connection will be closed without any response data - this should be made evident to the caller
  */
 public class ZabbixAgentClient implements Closeable {
     public static final int DEFAULT_PORT = 10050;
@@ -34,10 +41,23 @@ public class ZabbixAgentClient implements Closeable {
         return SocketChannel.open(new InetSocketAddress(address, port));
     }
 
-    public String retrieveData(String key) throws IOException {
+    public List<Map<String, Object>> discoverData(String key) throws IOException  {
+        final String json = retrieveData(key);
+        ObjectMapper mapper = new ObjectMapper();
+        // FIXME: Not sure if all discovery rule keys follow the same format
+        try {
+            return (List<Map<String, Object>>) mapper.readValue(json, List.class);
+        } catch (JsonParseException e) {
+            // FIXME: Handle "ZBX_NOTSUPPORTED" better
+            return Collections.emptyList();
+        }
+    }
+
+    public String retrieveData(String key) throws IOException, ZabbixNotSupportedException {
         try(final SocketChannel channel = openConnection(address, port)) {
             ByteBuffer requestBuffer = prepareByteBufferToSend(key);
-            channel.write(requestBuffer);        ByteBuffer buffer = ByteBuffer.allocate(512);
+            channel.write(requestBuffer);
+            ByteBuffer buffer = ByteBuffer.allocate(512);
             StringBuilder sb = new StringBuilder();
             while (channel.read(buffer) > 0) {
                 buffer.flip();
@@ -46,7 +66,13 @@ public class ZabbixAgentClient implements Closeable {
                 }
                 buffer.clear();
             }
-            return sb.length() > HEADER_LENGTH ? sb.substring(HEADER_LENGTH) : sb.toString();
+            // FIXME: Validate header and data length when processing response too
+            String response = sb.length() > HEADER_LENGTH ? sb.substring(HEADER_LENGTH) : sb.toString();
+            if (response.startsWith("ZBX_NOTSUPPORTED")) {
+                throw new ZabbixNotSupportedException(String.format("Host: %s, Port: %d, Key: '%s': %s",
+                        address.getHostAddress(), port, key, response));
+            }
+            return response;
         }
     }
 
@@ -75,4 +101,6 @@ public class ZabbixAgentClient implements Closeable {
             channel = null;
         }
     }
+
+
 }
