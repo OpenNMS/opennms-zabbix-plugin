@@ -33,4 +33,5 @@ public class ZabbixTemplateHandlerTest {
 
         System.out.println(discoveryKeys.size() + " " + discoveryKeys);
     }
+
 }

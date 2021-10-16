@@ -108,6 +108,9 @@ public class ZabbixTemplateHandler {
             try (BufferedReader br = new BufferedReader(new InputStreamReader(in))) {
                 String resource;
                 while ((resource = br.readLine()) != null) {
+                    if (!resource.endsWith(".yaml")) {
+                        continue;
+                    }
                     filenames.add(path + resource);
                 }
             }
