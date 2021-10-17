@@ -12,6 +12,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.opennms.plugins.zabbix.model.DiscoveryRule;
 import org.opennms.plugins.zabbix.model.Item;
@@ -41,6 +42,14 @@ public class ZabbixTemplateHandler {
         om.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
+    public Set<String> getDiscoveryKeys(Template template) {
+        final Set<String> discoveryKeys = new LinkedHashSet<>();
+        for (DiscoveryRule rule : template.getDiscoveryRules()) {
+            discoveryKeys.add(rule.getKey());
+        }
+        return discoveryKeys;
+    }
+
     public Set<String> getDiscoveryKeys() {
         final Set<String> discoveryKeys = new LinkedHashSet<>();
 
@@ -53,8 +62,15 @@ public class ZabbixTemplateHandler {
             }
         }
 
-
         return discoveryKeys;
+    }
+
+    public List<String> getKeys(Template template) {
+        final List<String> keys = new ArrayList<>();
+        for (Item item : template.getItems()) {
+            keys.add(item.getKey());
+        }
+        return keys;
     }
 
     public List<String> getKeys() {
@@ -96,6 +112,13 @@ public class ZabbixTemplateHandler {
             }
         }
         return templates;
+    }
+
+    public List<Template> getTemplates() {
+        return loadTemplates().stream()
+                .map(TemplateMeta::getZabbixExport)
+                .flatMap(export -> export.getTemplates().stream())
+                .collect(Collectors.toList());
     }
 
     private List<String> getResourceFiles(String path) throws IOException {

@@ -3,7 +3,6 @@ package org.opennms.plugins.zabbix;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 
 import java.util.LinkedList;
@@ -82,31 +81,6 @@ public class ZabbixResourceTypeGeneratorTest {
         StrategyDefinition persistenceStrategy = resourceType.getPersistenceSelectorStrategy();
         assertThat(persistenceStrategy.getClazz(), equalTo(ZabbixResourceTypeGenerator.REGEX_STRAT_CLASS));
         assertThat(persistenceStrategy.getParameters(), hasItem(new Parameter("match-expression", "(#DEVNAME not matches '_Total')")));
-    }
-
-    @Test
-    public void canFindMacrosInKey() {
-        assertThat(ZabbixResourceTypeGenerator.getMacros(null), hasSize(0));
-        assertThat(ZabbixResourceTypeGenerator.getMacros(""), hasSize(0));
-        assertThat(ZabbixResourceTypeGenerator.getMacros("what?"), hasSize(0));
-        assertThat(ZabbixResourceTypeGenerator.getMacros("{#FSNAME}"), hasSize(1));
-        assertThat(ZabbixResourceTypeGenerator.getMacros("{#FSNAME {#FSNAME}"), hasSize(1));
-        assertThat(ZabbixResourceTypeGenerator.getMacros("{#FSNAME} {#DISKNAME} {#DEVNAME}"), hasSize(3));
-    }
-
-    @Test
-    public void canConvertMacrosToVariables() {
-        // base cases, no macros
-        assertThat(ZabbixResourceTypeGenerator.macrosToVariables(null), equalTo(null));
-        assertThat(ZabbixResourceTypeGenerator.macrosToVariables(""), equalTo(""));
-        assertThat(ZabbixResourceTypeGenerator.macrosToVariables("why?"), equalTo("why?"));
-        // basic replacement
-        assertThat(ZabbixResourceTypeGenerator.macrosToVariables("{#FSNAME}"), equalTo("${FSNAME}"));
-        // incomplete + complete
-        assertThat(ZabbixResourceTypeGenerator.macrosToVariables("{#FSNAME {#FSNAME}"), equalTo("{#FSNAME ${FSNAME}"));
-        // multiple replacement
-        assertThat(ZabbixResourceTypeGenerator.macrosToVariables("{#FSNAME} {#DISKNAME} {#DEVNAME}"),
-                equalTo("${FSNAME} ${DISKNAME} ${DEVNAME}"));
     }
 
     private List<DiscoveryRule> getAllDiscoveryRules() {

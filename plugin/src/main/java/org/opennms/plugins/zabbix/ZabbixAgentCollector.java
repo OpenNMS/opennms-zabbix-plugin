@@ -15,6 +15,9 @@ import org.opennms.integration.api.v1.collectors.resource.NumericAttribute;
 import org.opennms.integration.api.v1.collectors.resource.immutables.ImmutableCollectionSet;
 import org.opennms.integration.api.v1.collectors.resource.immutables.ImmutableCollectionSetResource;
 import org.opennms.integration.api.v1.collectors.resource.immutables.ImmutableNodeResource;
+import org.opennms.plugins.zabbix.model.DiscoveryRule;
+import org.opennms.plugins.zabbix.model.ItemPrototype;
+import org.opennms.plugins.zabbix.model.Template;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +25,7 @@ import org.slf4j.LoggerFactory;
 /**
  * TODO: Make collector async (required async client)
  * TODO: Collect multiple keys in parallel, leveraging async behavior
+ * TODO: Determine which templates are applicable to the agent - don't just process all of them
  */
 public class ZabbixAgentCollector implements ServiceCollector {
 
@@ -86,24 +90,40 @@ public class ZabbixAgentCollector implements ServiceCollector {
                     .addNumericAttribute(ImmutableNumericAttribute.newBuilder()
                             .setGroup("zabbix").setName("mem-perc-avail").setValue(vmMemoryPercentageAvailable).setType(NumericAttribute.Type.GAUGE).build());
 
-            // Add other keys
-            ZabbixTemplateHandler templateHandler = new ZabbixTemplateHandler(bundleContext);
-            for (String key : templateHandler.getKeys()) {
-                try {
-                    String value = client.retrieveData(key);
-                    builder.addStringAttribute(ImmutableStringAttribute.newBuilder()
-                            .setGroup("zabbix").setName(key).setValue(value).build());
-                } catch (ZabbixNotSupportedException e) {
-                    // pass
+            // Process all the templates
+            final ZabbixTemplateHandler templateHandler = new ZabbixTemplateHandler(bundleContext);
+            final List<Template> templates = templateHandler.getTemplates();
+            for (Template template : templates) {
+                for (String key : templateHandler.getKeys(template)) {
+                    try {
+                        String value = client.retrieveData(key);
+                        builder.addStringAttribute(ImmutableStringAttribute.newBuilder()
+                                .setGroup("zabbix").setName(key).setValue(value).build());
+                    } catch (ZabbixNotSupportedException e) {
+                        // pass
+                    }
                 }
-            }
 
-            for (String discoveryKey : templateHandler.getDiscoveryKeys()) {
-                try {
-                    final List<Map<String, Object>> data = client.discoverData(discoveryKey);
-                    System.out.println("DATA for key " + discoveryKey + ": " + data);
-                } catch (ZabbixNotSupportedException e) {
-                    // pass
+                for (DiscoveryRule rule : template.getDiscoveryRules()) {
+                    try {
+                        final List<Map<String, Object>> entries = client.discoverData(rule.getKey());
+                        System.out.println("DATA for key " + rule.getKey() + ": " + entries);
+                        for (Map<String, Object> entry : entries) {
+                            // an entry looks something like: {"{#CPU.NUMBER}":0,"{#CPU.STATUS}":"online"}
+                            for (ItemPrototype item : rule.getItemPrototypes()) {
+                                final String effectiveKey = ZabbixMacroSupport.evaluateMacro(item.getKey(), entry);
+                                try {
+                                    String value = client.retrieveData(effectiveKey);
+                                    builder.addStringAttribute(ImmutableStringAttribute.newBuilder()
+                                            .setGroup("zabbix").setName(effectiveKey).setValue(value).build());
+                                } catch (ZabbixNotSupportedException e) {
+                                    // pass
+                                }
+                            }
+                        }
+                    } catch (ZabbixNotSupportedException e) {
+                        // pass
+                    }
                 }
             }
 
