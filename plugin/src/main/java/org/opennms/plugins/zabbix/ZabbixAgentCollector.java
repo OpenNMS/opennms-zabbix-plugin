@@ -10,11 +10,14 @@ import org.opennms.integration.api.v1.collectors.CollectionSet;
 import org.opennms.integration.api.v1.collectors.ServiceCollector;
 import org.opennms.integration.api.v1.collectors.immutables.ImmutableNumericAttribute;
 import org.opennms.integration.api.v1.collectors.immutables.ImmutableStringAttribute;
+import org.opennms.integration.api.v1.collectors.resource.GenericTypeResource;
 import org.opennms.integration.api.v1.collectors.resource.NodeResource;
 import org.opennms.integration.api.v1.collectors.resource.NumericAttribute;
 import org.opennms.integration.api.v1.collectors.resource.immutables.ImmutableCollectionSet;
 import org.opennms.integration.api.v1.collectors.resource.immutables.ImmutableCollectionSetResource;
+import org.opennms.integration.api.v1.collectors.resource.immutables.ImmutableGenericTypeResource;
 import org.opennms.integration.api.v1.collectors.resource.immutables.ImmutableNodeResource;
+import org.opennms.integration.api.v1.config.datacollection.ResourceType;
 import org.opennms.plugins.zabbix.model.DiscoveryRule;
 import org.opennms.plugins.zabbix.model.ItemPrototype;
 import org.opennms.plugins.zabbix.model.Template;
@@ -79,8 +82,9 @@ public class ZabbixAgentCollector implements ServiceCollector {
                 // pass
             }
 
+            NodeResource nodeResource = ImmutableNodeResource.newBuilder().setNodeId(1).build();
             ImmutableCollectionSetResource.Builder<NodeResource> builder = ImmutableCollectionSetResource.newBuilder(NodeResource.class)
-                    .setResource(ImmutableNodeResource.newBuilder().setNodeId(1).build())
+                    .setResource(nodeResource)
                     .addStringAttribute(ImmutableStringAttribute.newBuilder()
                             .setGroup("zabbix").setName("agent-version").setValue(version).build())
                     .addNumericAttribute(ImmutableNumericAttribute.newBuilder()
@@ -90,10 +94,15 @@ public class ZabbixAgentCollector implements ServiceCollector {
                     .addNumericAttribute(ImmutableNumericAttribute.newBuilder()
                             .setGroup("zabbix").setName("mem-perc-avail").setValue(vmMemoryPercentageAvailable).setType(NumericAttribute.Type.GAUGE).build());
 
+            ImmutableCollectionSet.Builder collectionSetBuilder = ImmutableCollectionSet.newBuilder()
+                    .setTimestamp(System.currentTimeMillis())
+                    .setStatus(CollectionSet.Status.SUCCEEDED);
+
             // Process all the templates
             final ZabbixTemplateHandler templateHandler = new ZabbixTemplateHandler(bundleContext);
             final List<Template> templates = templateHandler.getTemplates();
             for (Template template : templates) {
+                System.out.printf("Template[%s]: %s\n", template.getName(), template.getDescription());
                 for (String key : templateHandler.getKeys(template)) {
                     try {
                         String value = client.retrieveData(key);
@@ -104,36 +113,45 @@ public class ZabbixAgentCollector implements ServiceCollector {
                     }
                 }
 
+                final ZabbixResourceTypeGenerator resourceTypeGenerator = new ZabbixResourceTypeGenerator();
                 for (DiscoveryRule rule : template.getDiscoveryRules()) {
                     try {
                         final List<Map<String, Object>> entries = client.discoverData(rule.getKey());
+                        // We have some data, let's create a new resource type
+                        final ResourceType resourceType = resourceTypeGenerator.getResourceTypeFor(rule);
+
                         System.out.println("DATA for key " + rule.getKey() + ": " + entries);
                         for (Map<String, Object> entry : entries) {
+                            // Resource entry
+                            ImmutableCollectionSetResource.Builder<GenericTypeResource> resourceBuilder = ImmutableCollectionSetResource.newBuilder(GenericTypeResource.class)
+                                    .setResource(ImmutableGenericTypeResource.newBuilder()
+                                            .setNodeResource(nodeResource)
+                                            .setType(resourceType.getName())
+                                            .setInstance(resourceTypeGenerator.getIndex(rule, entry))
+                                            .build());
+
                             // an entry looks something like: {"{#CPU.NUMBER}":0,"{#CPU.STATUS}":"online"}
                             for (ItemPrototype item : rule.getItemPrototypes()) {
                                 final String effectiveKey = ZabbixMacroSupport.evaluateMacro(item.getKey(), entry);
                                 try {
+                                    System.out.println("Discovering KEY " + effectiveKey);
                                     String value = client.retrieveData(effectiveKey);
-                                    builder.addStringAttribute(ImmutableStringAttribute.newBuilder()
+                                    resourceBuilder.addStringAttribute(ImmutableStringAttribute.newBuilder()
                                             .setGroup("zabbix").setName(effectiveKey).setValue(value).build());
                                 } catch (ZabbixNotSupportedException e) {
                                     // pass
                                 }
                             }
+
+                            collectionSetBuilder.addCollectionSetResource(resourceBuilder.build());
                         }
                     } catch (ZabbixNotSupportedException e) {
                         // pass
                     }
                 }
             }
-
-            CollectionSet collectionSet = ImmutableCollectionSet.newBuilder()
-                    .setTimestamp(System.currentTimeMillis())
-                    .setStatus(CollectionSet.Status.SUCCEEDED)
-                    .addCollectionSetResource(builder.build())
-                    .build();
-
-            future.complete(collectionSet);
+            collectionSetBuilder.addCollectionSetResource(builder.build());
+            future.complete(collectionSetBuilder.build());
         } catch (IOException|NumberFormatException e) {
             future.completeExceptionally(e);
         } catch (Exception e) {

@@ -2,6 +2,7 @@ package org.opennms.plugins.zabbix;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -22,7 +23,12 @@ public class ZabbixResourceTypeGenerator {
     public static final String PERSIST_ALL_STRAT_CLASS = "org.opennms.netmgt.collection.support.PersistAllSelectorStrategy";
     public static final String SIBLING_STRAT_CLASS = "org.opennms.netmgt.dao.support.SiblingColumnStorageStrategy";
 
-    public org.opennms.integration.api.v1.config.datacollection.ResourceType getResourceTypeFor( DiscoveryRule rule) {
+    public String getIndex(DiscoveryRule rule, Map<String, Object> entry) {
+        final String varName = getVariableNameForIndex(rule);
+        return ZabbixMacroSupport.evaluateMacro(String.format("{#%s}", varName), entry);
+    }
+
+    public org.opennms.integration.api.v1.config.datacollection.ResourceType getResourceTypeFor(DiscoveryRule rule) {
         ResourceType resourceType = new ResourceType();
         resourceType.setName(rule.getKey());
         resourceType.setLabel(rule.getName());
@@ -76,7 +82,7 @@ public class ZabbixResourceTypeGenerator {
         return persistenceSelectorStrategy;
     }
 
-    private StorageStrategy getStorageStrategy(DiscoveryRule rule) {
+    private String getVariableNameForIndex(DiscoveryRule rule) {
         // Determine a unique index to use
         // We search through the item prototype to find the referenced macros and use these as the column name
         final Set<String> macros = rule.getItemPrototypes().stream()
@@ -91,13 +97,16 @@ public class ZabbixResourceTypeGenerator {
         if (varName == null) {
             throw new RuntimeException("FIXME: Unsupported macro: " + macro);
         }
+        return varName;
+    }
 
+    private StorageStrategy getStorageStrategy(DiscoveryRule rule) {
         StorageStrategy storageStrategy = new StorageStrategy();
         storageStrategy.setClazz(SIBLING_STRAT_CLASS);
         List<org.opennms.integration.api.v1.config.datacollection.Parameter> parameters = new LinkedList<>();
         Parameter parameter = new Parameter();
         parameter.setKey("sibling-column-name");
-        parameter.setValue(varName);
+        parameter.setValue(getVariableNameForIndex(rule));
         parameters.add(parameter);
         storageStrategy.setParameters(parameters);
         return storageStrategy;

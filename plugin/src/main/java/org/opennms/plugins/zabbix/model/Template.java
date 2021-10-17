@@ -8,6 +8,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Template {
 
+    private String name;
+    private String description;
+
     private List<Item> items = new LinkedList<>();
 
     @JsonManagedReference
@@ -15,6 +18,22 @@ public class Template {
     private List<DiscoveryRule> discoveryRules = new LinkedList<>();
 
     private List<Macro> macros = new LinkedList<>();
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
     public List<Item> getItems() {
         return items;

@@ -11,7 +11,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.opennms.integration.api.v1.collectors.CollectionRequest;
@@ -25,7 +24,6 @@ public class ZabbixAgentCollectorTest {
     @Rule
     public MockZabbixAgent zabbixAgent = new MockZabbixAgent();
 
-    @Ignore
     @Test
     public void canCollectCpuDetails() throws ExecutionException, InterruptedException, TimeoutException {
         CollectionRequest request = mock(CollectionRequest.class);
@@ -38,6 +36,6 @@ public class ZabbixAgentCollectorTest {
         // Verify
         CollectionSet collectionSet = future.get(5, TimeUnit.SECONDS);
         // Expect many resources
-        assertThat(collectionSet.getCollectionSetResources(), hasSize(17));
+        assertThat(collectionSet.getCollectionSetResources(), hasSize(15));
     }
 }

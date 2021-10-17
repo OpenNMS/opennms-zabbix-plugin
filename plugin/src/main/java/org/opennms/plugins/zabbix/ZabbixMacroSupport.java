@@ -77,6 +77,24 @@ public class ZabbixMacroSupport {
     }
 
     public static String evaluateMacro(String value, Map<String, Object> entry) {
-        return value;
+        if (Strings.isNullOrEmpty(value)) {
+            // nothing to replace
+            return value;
+        }
+
+        final Matcher m = MACRO_FIND_PATTERN.matcher(value);
+        final StringBuilder sb = new StringBuilder();
+        int offset = 0;
+
+        while (m.find()) {
+            // copy characters between offset and start
+            sb.append(value, offset, m.start());
+            // replace
+            sb.append(entry.getOrDefault(m.group(1), ""));
+            offset = m.end();
+        }
+        // copy remaining characters
+        sb.append(value, offset, value.length());
+        return sb.toString();
     }
 }

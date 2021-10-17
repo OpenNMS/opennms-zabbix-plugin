@@ -6,7 +6,15 @@ import static org.hamcrest.Matchers.hasSize;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
+
 public class ZabbixMacroSupportTest {
+
+    @Test
+    public void canEvaluateMacroWithContext() {
+        assertThat(ZabbixMacroSupport.evaluateMacro("{#FSNAME}!",
+                ImmutableMap.of("{#FSNAME}", "oops")), equalTo("oops!"));
+    }
 
     @Test
     public void canFindMacrosInKey() {
