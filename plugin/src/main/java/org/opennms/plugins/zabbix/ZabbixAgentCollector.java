@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 /**
  * TODO: Make collector async (required async client)
  * TODO: Collect multiple keys in parallel, leveraging async behavior
- * TODO: Determine which templates are applicable to the agent - don't just process all of them
  * TODO: Apply resource filtering during collection, and don't rely on the resource definition
  * TODO: Minion support - need to pass template data to the Minion
  */
@@ -57,6 +56,8 @@ public class ZabbixAgentCollector implements ServiceCollector {
             port = (int)map.get(PORT_KEY);
         }
 
+        final boolean isDebug = Boolean.parseBoolean((String)map.getOrDefault("debug","false"));
+
         final Node node = nodeDao.getNodeByCriteria(collectionRequest.getNodeCriteria());
         int nodeId = 0;
         if (node != null) {
@@ -76,7 +77,7 @@ public class ZabbixAgentCollector implements ServiceCollector {
                 LOG.debug("Processing template with name: {}", template.getName());
                 for (Item item : template.getItems()) {
                     try {
-                        String value = client.retrieveData(item.getKey());
+                        String value = client.retrieveData(item.getKey(), isDebug);
                         metricMapper.addValueToResource(item, value, nodeResourceBuilder);
                     } catch (ZabbixNotSupportedException e) {
                         // pass
@@ -86,7 +87,7 @@ public class ZabbixAgentCollector implements ServiceCollector {
                 final ZabbixResourceTypeGenerator resourceTypeGenerator = new ZabbixResourceTypeGenerator();
                 for (DiscoveryRule rule : template.getDiscoveryRules()) {
                     try {
-                        final List<Map<String, Object>> entries = client.discoverData(rule.getKey());
+                        final List<Map<String, Object>> entries = client.discoverData(rule.getKey(), isDebug);
                         // We have some data, let's create a new resource type
                         final ResourceType resourceType = resourceTypeGenerator.getResourceTypeFor(rule);
                         for (Map<String, Object> entry : entries) {
@@ -103,7 +104,7 @@ public class ZabbixAgentCollector implements ServiceCollector {
                             for (Item item : rule.getItemPrototypes()) {
                                 final String effectiveKey = ZabbixMacroSupport.evaluateMacro(item.getKey(), entry);
                                 try {
-                                    String value = client.retrieveData(effectiveKey);
+                                    String value = client.retrieveData(effectiveKey, isDebug);
                                     metricMapper.addValueToResource(rule, item, value, resourceBuilder);
                                     didAddAttribute = true;
                                 } catch (ZabbixNotSupportedException e) {

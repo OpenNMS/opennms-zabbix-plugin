@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 public class TemplateResolver {
     public static final String ZABBIX_AGENT_TEMPLATE_NAME = "Zabbix agent";
+    public static final String ZABBIX_METADATA_CONTEXT = "zabbix";
 
     private static final Logger LOG = LoggerFactory.getLogger(TemplateResolver.class);
 
@@ -37,7 +38,7 @@ public class TemplateResolver {
         }
 
         final List<String> templateNamesInZabbixContext = node.getMetaData().stream()
-                .filter(m -> "zabbix".equals(m.getContext()))
+                .filter(m -> ZABBIX_METADATA_CONTEXT.equals(m.getContext()))
                 .filter(m -> m.getKey().startsWith("template"))
                 .sorted(Comparator.comparing(MetaData::getKey))
                 .map(MetaData::getValue)

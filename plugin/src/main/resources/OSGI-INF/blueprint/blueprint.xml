@@ -30,7 +30,11 @@
         <argument ref="nodeDao" />
         <argument ref="templateResolver" />
     </bean>
-    <service interface="org.opennms.integration.api.v1.collectors.ServiceCollectorFactory" ref="zabbixAgentCollectorFactory" />
+    <service interface="org.opennms.integration.api.v1.collectors.ServiceCollectorFactory" ref="zabbixAgentCollectorFactory" >
+        <service-properties>
+            <entry key="type" value="zabbix"/>
+        </service-properties>
+    </service>
 
     <service interface="org.opennms.integration.api.v1.config.datacollection.ResourceTypesExtension">
         <bean class="org.opennms.plugins.zabbix.config.ResourceTypesExtension">
@@ -41,6 +45,16 @@
     <service interface="org.opennms.integration.api.v1.config.datacollection.graphs.GraphPropertiesExtension">
         <bean class="org.opennms.plugins.zabbix.config.GraphPropertiesExtension">
             <argument ref="zabbixTemplateHandler" />
+        </bean>
+    </service>
+
+    <!-- Lab -->
+    <bean id="labContextManager" class="org.opennms.plugins.zabbix.lab.LabContextManager"/>
+    <service interface="org.opennms.plugins.zabbix.lab.LabContextManager" ref="labContextManager" />
+
+    <service interface="org.opennms.integration.api.v1.requisition.RequisitionProvider">
+        <bean class="org.opennms.plugins.zabbix.lab.LabRequisitionProvider">
+            <argument ref="labContextManager"/>
         </bean>
     </service>
 

@@ -105,6 +105,11 @@
             <artifactId>metrics-core</artifactId>
             <version>${metrics.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+            <version>4.1.69.Final</version>
+        </dependency>
 
         <!-- Test -->
         <dependency>
@@ -149,12 +154,6 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>3.8.1</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
-            <version>4.1.69.Final</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

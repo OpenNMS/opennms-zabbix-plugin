@@ -40,20 +40,30 @@ public class ZabbixAgentClient implements Closeable {
     private SocketChannel openConnection(InetAddress address, int port) throws IOException {
         return SocketChannel.open(new InetSocketAddress(address, port));
     }
+    public List<Map<String, Object>> discoverData(String key) throws IOException {
+        return discoverData(key, false);
+    }
 
-    public List<Map<String, Object>> discoverData(String key) throws IOException  {
-        final String json = retrieveData(key);
+    public List<Map<String, Object>> discoverData(String key, boolean isDebug) throws IOException  {
+        final String json = retrieveData(key, isDebug);
         ObjectMapper mapper = new ObjectMapper();
         // FIXME: Not sure if all discovery rule keys follow the same format
         try {
-            return (List<Map<String, Object>>) mapper.readValue(json, List.class);
+            List<Map<String, Object>> entries = (List<Map<String, Object>>) mapper.readValue(json, List.class);
+            if (isDebug) System.out.printf("%s = %s\n", key, entries);
+            return entries;
         } catch (JsonParseException e) {
+            if (isDebug) System.out.printf("%s = <invalid json>\n", key);
             // FIXME: Handle "ZBX_NOTSUPPORTED" better
             return Collections.emptyList();
         }
     }
 
     public String retrieveData(String key) throws IOException, ZabbixNotSupportedException {
+        return retrieveData(key, false);
+    }
+
+    public String retrieveData(String key, boolean isDebug) throws IOException, ZabbixNotSupportedException {
         try(final SocketChannel channel = openConnection(address, port)) {
             ByteBuffer requestBuffer = prepareByteBufferToSend(key);
             channel.write(requestBuffer);
@@ -69,9 +79,11 @@ public class ZabbixAgentClient implements Closeable {
             // FIXME: Validate header and data length when processing response too
             String response = sb.length() > HEADER_LENGTH ? sb.substring(HEADER_LENGTH) : sb.toString();
             if (response.startsWith("ZBX_NOTSUPPORTED")) {
+                if (isDebug) System.out.printf("%s <> %s\n", key, response);
                 throw new ZabbixNotSupportedException(String.format("Host: %s, Port: %d, Key: '%s': %s",
                         address.getHostAddress(), port, key, response));
             }
+            if (isDebug) System.out.printf("%s = %s\n", key, response);
             return response;
         }
     }

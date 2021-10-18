@@ -16,7 +16,6 @@ import org.junit.Test;
 import org.opennms.integration.api.v1.collectors.CollectionRequest;
 import org.opennms.integration.api.v1.collectors.CollectionSet;
 import org.opennms.integration.api.v1.dao.NodeDao;
-import org.opennms.plugins.zabbix.mock.MockZabbixAgent;
 
 import com.google.common.collect.ImmutableMap;
 

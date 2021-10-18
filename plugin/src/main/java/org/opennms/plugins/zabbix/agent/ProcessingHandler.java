@@ -1,4 +1,4 @@
-package org.opennms.plugins.zabbix.mock;
+package org.opennms.plugins.zabbix.agent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

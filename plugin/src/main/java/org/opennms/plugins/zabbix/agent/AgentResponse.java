@@ -1,4 +1,4 @@
-package org.opennms.plugins.zabbix.mock;
+package org.opennms.plugins.zabbix.agent;
 
 import com.google.common.base.MoreObjects;
 
