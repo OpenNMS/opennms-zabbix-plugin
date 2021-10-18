@@ -121,8 +121,9 @@ public class StartLab implements Action {
                     return Integer.toString(node.getId());
                 }
             };
-            Map<String,Object> collectionParams = ImmutableMap.<String,Object>builder()
+            final Map<String,Object> collectionParams = ImmutableMap.<String,Object>builder()
                             .put(ZabbixAgentCollector.PORT_KEY, agent.getPort())
+                            .putAll(zabbixServiceCollectorFactory.getRuntimeAttributes(collectionRequest))
                             .build();
 
             for (int i = 0; i < 2; i++) {
