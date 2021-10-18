@@ -12,19 +12,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * TODO: Better handling of unsupported keys i.e. ZBX_NOTSUPPORTEDUnsupported item key. or ZBX_NOTSUPPORTEDToo many parameters.
- * TODO: Support many keys in one session
  * TODO: Full async communication and async API (could be exposed as something like CompletableFuture<Resuts> getKeys(String... keys))
  * TODO: Handle cases where the server rejects the connection - the connection will be closed without any response data - this should be made evident to the caller
  */
 public class ZabbixAgentClient implements Closeable {
+    private static final Logger LOG = LoggerFactory.getLogger(ZabbixAgentClient.class);
     public static final int DEFAULT_PORT = 10050;
 
-    private static String ZBX_HEADER="ZBXD";
     private static int HEADER_LENGTH = 13;
 
     private final InetAddress address;
@@ -40,30 +42,23 @@ public class ZabbixAgentClient implements Closeable {
     private SocketChannel openConnection(InetAddress address, int port) throws IOException {
         return SocketChannel.open(new InetSocketAddress(address, port));
     }
-    public List<Map<String, Object>> discoverData(String key) throws IOException {
-        return discoverData(key, false);
-    }
 
-    public List<Map<String, Object>> discoverData(String key, boolean isDebug) throws IOException  {
-        final String json = retrieveData(key, isDebug);
+    public List<Map<String, Object>> discoverData(String key) throws IOException  {
+        final String json = retrieveData(key);
         ObjectMapper mapper = new ObjectMapper();
         // FIXME: Not sure if all discovery rule keys follow the same format
         try {
             List<Map<String, Object>> entries = (List<Map<String, Object>>) mapper.readValue(json, List.class);
-            if (isDebug) System.out.printf("%s = %s\n", key, entries);
+            LOG.trace("{} = {}", key, entries);
             return entries;
         } catch (JsonParseException e) {
-            if (isDebug) System.out.printf("%s = <invalid json>\n", key);
+            LOG.trace("{} = <invalid json>", key);
             // FIXME: Handle "ZBX_NOTSUPPORTED" better
             return Collections.emptyList();
         }
     }
 
     public String retrieveData(String key) throws IOException, ZabbixNotSupportedException {
-        return retrieveData(key, false);
-    }
-
-    public String retrieveData(String key, boolean isDebug) throws IOException, ZabbixNotSupportedException {
         try(final SocketChannel channel = openConnection(address, port)) {
             ByteBuffer requestBuffer = prepareByteBufferToSend(key);
             channel.write(requestBuffer);
@@ -79,11 +74,11 @@ public class ZabbixAgentClient implements Closeable {
             // FIXME: Validate header and data length when processing response too
             String response = sb.length() > HEADER_LENGTH ? sb.substring(HEADER_LENGTH) : sb.toString();
             if (response.startsWith("ZBX_NOTSUPPORTED")) {
-                if (isDebug) System.out.printf("%s <> %s\n", key, response);
+                LOG.trace("{} <> {}", key, response);
                 throw new ZabbixNotSupportedException(String.format("Host: %s, Port: %d, Key: '%s': %s",
                         address.getHostAddress(), port, key, response));
             }
-            if (isDebug) System.out.printf("%s = %s\n", key, response);
+            LOG.trace("{} = {}", key, response);
             return response;
         }
     }

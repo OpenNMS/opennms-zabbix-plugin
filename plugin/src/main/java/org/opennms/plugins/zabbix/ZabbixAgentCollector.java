@@ -59,8 +59,6 @@ public class ZabbixAgentCollector implements ServiceCollector {
             }
         }
 
-        final boolean isDebug = Boolean.parseBoolean((String)map.getOrDefault("debug","false"));
-
         final Node node = nodeDao.getNodeByCriteria(collectionRequest.getNodeCriteria());
         int nodeId = 0;
         if (node != null) {
@@ -80,7 +78,7 @@ public class ZabbixAgentCollector implements ServiceCollector {
                 LOG.debug("Processing template with name: {}", template.getName());
                 for (Item item : template.getItems()) {
                     try {
-                        String value = client.retrieveData(item.getKey(), isDebug);
+                        String value = client.retrieveData(item.getKey());
                         metricMapper.addValueToResource(item, value, nodeResourceBuilder);
                     } catch (ZabbixNotSupportedException e) {
                         // pass
@@ -90,7 +88,7 @@ public class ZabbixAgentCollector implements ServiceCollector {
                 final ZabbixResourceTypeGenerator resourceTypeGenerator = new ZabbixResourceTypeGenerator();
                 for (DiscoveryRule rule : template.getDiscoveryRules()) {
                     try {
-                        final List<Map<String, Object>> entries = client.discoverData(rule.getKey(), isDebug);
+                        final List<Map<String, Object>> entries = client.discoverData(rule.getKey());
                         // We have some data, let's create a new resource type
                         final ResourceType resourceType = resourceTypeGenerator.getResourceTypeFor(rule);
                         for (Map<String, Object> entry : entries) {
@@ -107,7 +105,7 @@ public class ZabbixAgentCollector implements ServiceCollector {
                             for (Item item : rule.getItemPrototypes()) {
                                 final String effectiveKey = ZabbixMacroSupport.evaluateMacro(item.getKey(), entry);
                                 try {
-                                    String value = client.retrieveData(effectiveKey, isDebug);
+                                    String value = client.retrieveData(effectiveKey);
                                     metricMapper.addValueToResource(rule, item, value, resourceBuilder);
                                     didAddAttribute = true;
                                 } catch (ZabbixNotSupportedException e) {
