@@ -15,6 +15,8 @@ public class DiscoveryRule {
     private Filter filter;
     @JsonBackReference
     public Template template;
+    @JsonProperty("graph_prototypes")
+    private List<Graph> graphPrototypes = new LinkedList<>();
 
     public String getName() {
         return name;
@@ -62,5 +64,13 @@ public class DiscoveryRule {
 
     public void setTemplate(Template template) {
         this.template = template;
+    }
+
+    public List<Graph> getGraphPrototypes() {
+        return graphPrototypes;
+    }
+
+    public void setGraphPrototypes(List<Graph> graphPrototypes) {
+        this.graphPrototypes = graphPrototypes;
     }
 }

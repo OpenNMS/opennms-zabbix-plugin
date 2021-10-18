@@ -90,4 +90,7 @@ public class TemplateResolver {
         }
     }
 
+    public ZabbixTemplateHandler getZabbixTemplateHandler() {
+        return zabbixTemplateHandler;
+    }
 }
