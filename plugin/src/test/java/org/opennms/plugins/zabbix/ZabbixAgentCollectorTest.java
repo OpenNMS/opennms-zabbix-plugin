@@ -33,9 +33,18 @@ public class ZabbixAgentCollectorTest {
         ZabbixTemplateHandler zabbixTemplateHandler = new ZabbixTemplateHandler();
         TemplateResolver templateResolver = mock(TemplateResolver.class);
         when(templateResolver.getTemplatesForNode(null)).thenReturn(zabbixTemplateHandler.getTemplates());
-        ZabbixAgentCollector collector = new ZabbixAgentCollector(nodeDao, templateResolver);
 
-        Map<String, Object> collectorOptions = ImmutableMap.of(ZabbixAgentCollector.PORT_KEY, zabbixAgent.getPort());
+        ZabbixAgentCollectorFactory zabbixAgentCollectorFactory = new ZabbixAgentCollectorFactory(nodeDao, templateResolver);
+        Map<String, Object> runtimeAttributes = zabbixAgentCollectorFactory.getRuntimeAttributes(request);
+        ZabbixAgentCollector collector = zabbixAgentCollectorFactory.createCollector();
+        Map<String, Object> collectorOptions = ImmutableMap.<String, Object>builder()
+                .put(ZabbixAgentCollector.PORT_KEY, zabbixAgent.getPort())
+                .putAll(runtimeAttributes)
+                .build();
+
+        // marshal/unmarshal for test coverage
+        collectorOptions = zabbixAgentCollectorFactory.unmarshalParameters(zabbixAgentCollectorFactory.marshalParameters(collectorOptions));
+
         CompletableFuture<CollectionSet> future = collector.collect(request, collectorOptions);
 
         // Verify

@@ -3,7 +3,6 @@ package org.opennms.plugins.zabbix;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 import org.opennms.integration.api.v1.collectors.CollectionRequest;
@@ -16,8 +15,6 @@ import org.opennms.integration.api.v1.collectors.resource.immutables.ImmutableCo
 import org.opennms.integration.api.v1.collectors.resource.immutables.ImmutableGenericTypeResource;
 import org.opennms.integration.api.v1.collectors.resource.immutables.ImmutableNodeResource;
 import org.opennms.integration.api.v1.config.datacollection.ResourceType;
-import org.opennms.integration.api.v1.dao.NodeDao;
-import org.opennms.integration.api.v1.model.Node;
 import org.opennms.plugins.zabbix.model.DiscoveryRule;
 import org.opennms.plugins.zabbix.model.Item;
 import org.opennms.plugins.zabbix.model.Template;
@@ -28,7 +25,6 @@ import org.slf4j.LoggerFactory;
  * TODO: Make collector async (required async client)
  * TODO: Collect multiple keys in parallel, leveraging async behavior
  * TODO: Apply resource filtering during collection, and don't rely on the resource definition
- * TODO: Minion support - need to pass template data to the Minion
  */
 public class ZabbixAgentCollector implements ServiceCollector {
 
@@ -36,15 +32,7 @@ public class ZabbixAgentCollector implements ServiceCollector {
 
     private static final Logger LOG = LoggerFactory.getLogger(ZabbixAgentCollector.class);
 
-    private final NodeDao nodeDao;
-    private final TemplateResolver templateResolver;
-
     private final ZabbixMetricMapper metricMapper = new ZabbixMetricMapper();
-
-    public ZabbixAgentCollector(NodeDao nodeDao, TemplateResolver templateResolver) {
-        this.nodeDao = Objects.requireNonNull(nodeDao);
-        this.templateResolver = Objects.requireNonNull(templateResolver);
-    }
 
     @Override
     public CompletableFuture<CollectionSet> collect(CollectionRequest collectionRequest, Map<String, Object> map) {
@@ -59,11 +47,8 @@ public class ZabbixAgentCollector implements ServiceCollector {
             }
         }
 
-        final Node node = nodeDao.getNodeByCriteria(collectionRequest.getNodeCriteria());
-        int nodeId = 0;
-        if (node != null) {
-            nodeId = node.getId();
-        }
+        int nodeId = Integer.parseInt((String)map.get(ZabbixAgentCollectorFactory.NODE_ID_KEY));
+        List<Template> templates = (List<Template>)map.get(ZabbixAgentCollectorFactory.TEMPLATES_KEY);
 
         try (ZabbixAgentClient client = new ZabbixAgentClient(collectionRequest.getAddress(), port)) {
             NodeResource nodeResource = ImmutableNodeResource.newBuilder().setNodeId(nodeId).build();
@@ -74,7 +59,7 @@ public class ZabbixAgentCollector implements ServiceCollector {
                     .setStatus(CollectionSet.Status.SUCCEEDED);
 
             // Process the template
-            for (Template template : templateResolver.getTemplatesForNode(collectionRequest.getNodeCriteria())) {
+            for (Template template : templates) {
                 LOG.debug("Processing template with name: {}", template.getName());
                 for (Item item : template.getItems()) {
                     try {

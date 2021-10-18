@@ -109,5 +109,4 @@ public class ZabbixAgentClient implements Closeable {
         }
     }
 
-
 }

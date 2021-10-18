@@ -25,6 +25,7 @@ public class ZabbixMetricMapperTest {
         assertThat(metricMapper.getMetricName("vm.memory.utilization"), equalTo("vm.memory.utilization"));
         assertThat(metricMapper.getMetricName("system.cpu.util[,iowait]"), equalTo("system.cpu.util.iowait"));
         assertThat(metricMapper.getMetricName("proc.num[,,run]"), equalTo("proc.num.run"));
+        assertThat(metricMapper.getMetricName("vfs.file.contents[/sys/block/{#DEVNAME}/stat]"), equalTo("vfs.file.contents"));
     }
 
     @Test
