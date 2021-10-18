@@ -1,4 +1,4 @@
-package org.opennms.plugins.zabbix;
+package org.opennms.plugins.zabbix.config;
 
 import java.util.List;
 

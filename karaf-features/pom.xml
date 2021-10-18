@@ -83,7 +83,7 @@
                                 <feature>framework</feature>
                             </framework>
                             <features>
-                                <feature>opennms-plugins-zabbix</feature>
+                                <!-- <feature>opennms-plugins-zabbix</feature> -->
                                 <feature>okhttp</feature>
                                 <feature>guava</feature>
                             </features>

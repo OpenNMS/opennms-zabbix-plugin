@@ -6,19 +6,21 @@ import java.util.Objects;
 
 import org.opennms.integration.api.v1.collectors.CollectionRequest;
 import org.opennms.integration.api.v1.collectors.ServiceCollectorFactory;
-import org.osgi.framework.BundleContext;
+import org.opennms.integration.api.v1.dao.NodeDao;
 
 public class ZabbixAgentCollectorFactory implements ServiceCollectorFactory<ZabbixAgentCollector> {
 
-    private final BundleContext bundleContext;
+    private final NodeDao nodeDao;
+    private final TemplateResolver templateResolver;
 
-    public ZabbixAgentCollectorFactory(BundleContext bundleContext) {
-        this.bundleContext = Objects.requireNonNull(bundleContext);
+    public ZabbixAgentCollectorFactory(NodeDao nodeDao, TemplateResolver templateResolver) {
+        this.nodeDao = Objects.requireNonNull(nodeDao);
+        this.templateResolver = Objects.requireNonNull(templateResolver);
     }
 
     @Override
     public ZabbixAgentCollector createCollector() {
-        return new ZabbixAgentCollector(bundleContext);
+        return new ZabbixAgentCollector(nodeDao, templateResolver);
     }
 
     @Override

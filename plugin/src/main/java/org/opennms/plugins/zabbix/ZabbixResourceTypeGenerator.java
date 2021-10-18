@@ -14,7 +14,7 @@ import org.opennms.integration.api.xml.schema.datacollection.StorageStrategy;
 import org.opennms.plugins.zabbix.model.Condition;
 import org.opennms.plugins.zabbix.model.DiscoveryRule;
 import org.opennms.plugins.zabbix.model.Filter;
-import org.opennms.plugins.zabbix.model.ItemPrototype;
+import org.opennms.plugins.zabbix.model.Item;
 import org.opennms.plugins.zabbix.model.Tag;
 
 public class ZabbixResourceTypeGenerator {
@@ -86,7 +86,7 @@ public class ZabbixResourceTypeGenerator {
         // Determine a unique index to use
         // We search through the item prototype to find the referenced macros and use these as the column name
         final Set<String> macros = rule.getItemPrototypes().stream()
-                .map(ItemPrototype::getKey)
+                .map(Item::getKey)
                 .flatMap(key -> ZabbixMacroSupport.getMacros(key).stream())
                 .collect(Collectors.toSet());
         if (macros.size() != 1) {
@@ -116,8 +116,8 @@ public class ZabbixResourceTypeGenerator {
      * Retrieve the first available tag from a discovery rule.
      */
     private Optional<Tag> getFirstTag(DiscoveryRule rule) {
-        for (ItemPrototype prototype : rule.getItemPrototypes()) {
-            for (Tag tag : prototype.getTags()) {
+        for (Item item : rule.getItemPrototypes()) {
+            for (Tag tag : item.getTags()) {
                 return Optional.of(tag);
             }
         }

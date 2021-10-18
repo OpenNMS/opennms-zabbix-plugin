@@ -14,9 +14,34 @@
         </cm:default-properties>
     </cm:property-placeholder>
 
-    <bean id="zabbixAgentCollectorFactory" class="org.opennms.plugins.zabbix.ZabbixAgentCollectorFactory" >
+    <reference id="nodeDao" interface="org.opennms.integration.api.v1.dao.NodeDao" availability="mandatory"/>
+
+    <bean id="zabbixTemplateHandler" class="org.opennms.plugins.zabbix.ZabbixTemplateHandler">
         <argument ref="blueprintBundleContext" />
     </bean>
+
+    <bean id="templateResolver" class="org.opennms.plugins.zabbix.TemplateResolver">
+        <argument ref="nodeDao" />
+        <argument ref="zabbixTemplateHandler" />
+    </bean>
+    <service interface="org.opennms.plugins.zabbix.TemplateResolver" ref="templateResolver" />
+
+    <bean id="zabbixAgentCollectorFactory" class="org.opennms.plugins.zabbix.ZabbixAgentCollectorFactory" >
+        <argument ref="nodeDao" />
+        <argument ref="templateResolver" />
+    </bean>
     <service interface="org.opennms.integration.api.v1.collectors.ServiceCollectorFactory" ref="zabbixAgentCollectorFactory" />
+
+    <service interface="org.opennms.integration.api.v1.config.datacollection.ResourceTypesExtension">
+        <bean class="org.opennms.plugins.zabbix.config.ResourceTypesExtension">
+            <argument ref="zabbixTemplateHandler" />
+        </bean>
+    </service>
+
+    <service interface="org.opennms.integration.api.v1.config.datacollection.graphs.GraphPropertiesExtension">
+        <bean class="org.opennms.plugins.zabbix.config.GraphPropertiesExtension">
+            <argument ref="zabbixTemplateHandler" />
+        </bean>
+    </service>
 
 </blueprint>

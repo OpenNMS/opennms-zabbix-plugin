@@ -16,7 +16,17 @@ import com.google.common.base.Strings;
  * Misc. functions for dealing with Zabbix macros.
  */
 public class ZabbixMacroSupport {
+
+    private static final Pattern GENERIC_MACRO_PATTERN = Pattern.compile("\\{.+}");
+
     private static final Pattern MACRO_FIND_PATTERN = Pattern.compile("(\\{#([^{]*?)\\})");
+
+    public static boolean containsMacro(String value) {
+        if (Strings.isNullOrEmpty(value)) {
+            return false;
+        }
+        return GENERIC_MACRO_PATTERN.matcher(value).find();
+    }
 
     /**
      * Convert macros to variable placeholder
@@ -97,4 +107,5 @@ public class ZabbixMacroSupport {
         sb.append(value, offset, value.length());
         return sb.toString();
     }
+
 }

@@ -11,6 +11,19 @@ import com.google.common.collect.ImmutableMap;
 public class ZabbixMacroSupportTest {
 
     @Test
+    public void canTestStringForMacro() {
+        assertThat(ZabbixMacroSupport.containsMacro(null), equalTo(false));
+        assertThat(ZabbixMacroSupport.containsMacro(""), equalTo(false));
+        assertThat(ZabbixMacroSupport.containsMacro("wow"), equalTo(false));
+        assertThat(ZabbixMacroSupport.containsMacro("{wow"), equalTo(false));
+        assertThat(ZabbixMacroSupport.containsMacro("wow}"), equalTo(false));
+        assertThat(ZabbixMacroSupport.containsMacro("{wow}"), equalTo(true));
+        assertThat(ZabbixMacroSupport.containsMacro("{#FSNAME}"), equalTo(true));
+        assertThat(ZabbixMacroSupport.containsMacro("\"{#FSNAME}\""), equalTo(true));
+        assertThat(ZabbixMacroSupport.containsMacro("  {#FSNAME} something something"), equalTo(true));
+    }
+
+    @Test
     public void canEvaluateMacroWithContext() {
         assertThat(ZabbixMacroSupport.evaluateMacro("{#FSNAME}!",
                 ImmutableMap.of("{#FSNAME}", "oops")), equalTo("oops!"));

@@ -2,7 +2,10 @@ package org.opennms.plugins.zabbix.model;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -18,6 +21,9 @@ public class Template {
     private List<DiscoveryRule> discoveryRules = new LinkedList<>();
 
     private List<Macro> macros = new LinkedList<>();
+
+    @JsonProperty("templates")
+    private List<LinkedTemplate> linkedTemplates = new LinkedList<>();
 
     public String getName() {
         return name;
@@ -57,5 +63,20 @@ public class Template {
 
     public void setMacros(List<Macro> macros) {
         this.macros = macros;
+    }
+
+    public List<LinkedTemplate> getLinkedTemplates() {
+        return linkedTemplates;
+    }
+
+    public void setLinkedTemplates(List<LinkedTemplate> linkedTemplates) {
+        this.linkedTemplates = linkedTemplates;
+    }
+
+    @JsonIgnore
+    public Optional<DiscoveryRule> getDiscoveryRuleByName(String name) {
+        return discoveryRules.stream()
+                .filter(rule -> Objects.equals(name, rule.getName()))
+                .findFirst();
     }
 }

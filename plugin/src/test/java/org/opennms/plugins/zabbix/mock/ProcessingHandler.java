@@ -16,6 +16,8 @@ public class ProcessingHandler extends ChannelInboundHandlerAdapter {
 
         if ("agent.version".equals(request.getKey())) {
             response.setValue("5.4.4");
+        } else if ("vfs.fs.inode[/,pfree]".equals(request.getKey())) {
+            response.setValue("99.976526");
         } else if ("vfs.fs.discovery".equals(request.getKey())) {
             response.setValue("[{\"{#FSNAME}\":\"/\",\"{#FSTYPE}\":\"apfs\"},{\"{#FSNAME}\":\"/dev\",\"{#FSTYPE}\":\"devfs\"},{\"{#FSNAME}\":\"/System/Volumes/VM\",\"{#FSTYPE}\":\"apfs\"},{\"{#FSNAME}\":\"/System/Volumes/Preboot\",\"{#FSTYPE}\":\"apfs\"},{\"{#FSNAME}\":\"/System/Volumes/Update\",\"{#FSTYPE}\":\"apfs\"},{\"{#FSNAME}\":\"/System/Volumes/Data\",\"{#FSTYPE}\":\"apfs\"},{\"{#FSNAME}\":\"/System/Volumes/Data/home\",\"{#FSTYPE}\":\"autofs\"}]");
         } else if ("system.cpu.discovery".equals(request.getKey())) {

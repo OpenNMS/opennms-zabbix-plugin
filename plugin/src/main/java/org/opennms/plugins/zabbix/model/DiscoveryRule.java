@@ -11,7 +11,7 @@ public class DiscoveryRule {
     private String key;
     private String description;
     @JsonProperty("item_prototypes")
-    private List<ItemPrototype> itemPrototypes = new LinkedList<>();
+    private List<Item> itemPrototypes = new LinkedList<>();
     private Filter filter;
     @JsonBackReference
     public Template template;
@@ -40,11 +40,11 @@ public class DiscoveryRule {
         this.description = description;
     }
 
-    public List<ItemPrototype> getItemPrototypes() {
+    public List<Item> getItemPrototypes() {
         return itemPrototypes;
     }
 
-    public void setItemPrototypes(List<ItemPrototype> itemPrototypes) {
+    public void setItemPrototypes(List<Item> itemPrototypes) {
         this.itemPrototypes = itemPrototypes;
     }
 

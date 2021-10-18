@@ -15,6 +15,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.opennms.integration.api.v1.collectors.CollectionRequest;
 import org.opennms.integration.api.v1.collectors.CollectionSet;
+import org.opennms.integration.api.v1.dao.NodeDao;
 import org.opennms.plugins.zabbix.mock.MockZabbixAgent;
 
 import com.google.common.collect.ImmutableMap;
@@ -28,7 +29,12 @@ public class ZabbixAgentCollectorTest {
     public void canCollectCpuDetails() throws ExecutionException, InterruptedException, TimeoutException {
         CollectionRequest request = mock(CollectionRequest.class);
         when(request.getAddress()).thenReturn(zabbixAgent.getAddress());
-        ZabbixAgentCollector collector = new ZabbixAgentCollector();
+
+        NodeDao nodeDao = mock(NodeDao.class);
+        ZabbixTemplateHandler zabbixTemplateHandler = new ZabbixTemplateHandler();
+        TemplateResolver templateResolver = mock(TemplateResolver.class);
+        when(templateResolver.getTemplatesForNode(null)).thenReturn(zabbixTemplateHandler.getTemplates());
+        ZabbixAgentCollector collector = new ZabbixAgentCollector(nodeDao, templateResolver);
 
         Map<String, Object> collectorOptions = ImmutableMap.of(ZabbixAgentCollector.PORT_KEY, zabbixAgent.getPort());
         CompletableFuture<CollectionSet> future = collector.collect(request, collectorOptions);
@@ -36,6 +42,6 @@ public class ZabbixAgentCollectorTest {
         // Verify
         CollectionSet collectionSet = future.get(5, TimeUnit.SECONDS);
         // Expect many resources
-        assertThat(collectionSet.getCollectionSetResources(), hasSize(15));
+        assertThat(collectionSet.getCollectionSetResources(), hasSize(2));
     }
 }

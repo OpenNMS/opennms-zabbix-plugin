@@ -11,6 +11,8 @@ import java.util.Enumeration;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -121,6 +123,14 @@ public class ZabbixTemplateHandler {
                 .collect(Collectors.toList());
     }
 
+    public Optional<Template> getTemplateByName(String name) {
+        return loadTemplates().stream()
+                .map(TemplateMeta::getZabbixExport)
+                .flatMap(export -> export.getTemplates().stream())
+                .filter(t -> Objects.equals(name, t.getName()))
+                .findFirst();
+    }
+
     private List<String> getResourceFiles(String path) throws IOException {
         List<String> filenames = new ArrayList<>();
         try (InputStream in = getResourceAsStream(path)) {
@@ -149,5 +159,7 @@ public class ZabbixTemplateHandler {
     private ClassLoader getContextClassLoader() {
         return Thread.currentThread().getContextClassLoader();
     }
+
+
 
 }
