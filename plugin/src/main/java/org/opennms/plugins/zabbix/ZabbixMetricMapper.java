@@ -10,6 +10,8 @@ import org.opennms.plugins.zabbix.model.DiscoveryRule;
 import org.opennms.plugins.zabbix.model.Item;
 import org.opennms.plugins.zabbix.model.ZabbixKey;
 
+import com.google.common.base.Strings;
+
 public class ZabbixMetricMapper {
     public static final String DEFAULT_GROUP_NAME = "zabbix";
 
@@ -32,7 +34,11 @@ public class ZabbixMetricMapper {
         final StringBuilder sb = new StringBuilder();
         sb.append(zabbixKey.getName());
         for (String parameter : zabbixKey.getParameters()) {
-            // Skip paramters with macros
+            // Skip empty parameters
+            if (Strings.isNullOrEmpty(parameter)) {
+                continue;
+            }
+            // Skip parameters with macros
             if (ZabbixMacroSupport.containsMacro(parameter)) {
                 continue;
             }

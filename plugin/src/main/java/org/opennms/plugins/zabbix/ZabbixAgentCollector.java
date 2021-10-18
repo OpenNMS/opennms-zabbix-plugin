@@ -52,8 +52,11 @@ public class ZabbixAgentCollector implements ServiceCollector {
 
         int port = ZabbixAgentClient.DEFAULT_PORT;
         if (map.containsKey(PORT_KEY)) {
-            // FIXME: Handle string values too -_-
-            port = (int)map.get(PORT_KEY);
+            try {
+                port = Integer.parseInt(map.get(PORT_KEY).toString());
+            } catch (NumberFormatException nfe) {
+                LOG.error("Invalid port '{}', using default: {}", map.get(PORT_KEY), port);
+            }
         }
 
         final boolean isDebug = Boolean.parseBoolean((String)map.getOrDefault("debug","false"));

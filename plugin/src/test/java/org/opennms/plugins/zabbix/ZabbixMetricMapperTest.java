@@ -23,6 +23,8 @@ public class ZabbixMetricMapperTest {
         assertThat(metricMapper.getMetricName("net.if.out[\"{#IFNAME}\",errors]"), equalTo("net.if.out.errors"));
         assertThat(metricMapper.getMetricName("net.if.in[\"{#IFNAME}\"]"), equalTo("net.if.in"));
         assertThat(metricMapper.getMetricName("vm.memory.utilization"), equalTo("vm.memory.utilization"));
+        assertThat(metricMapper.getMetricName("system.cpu.util[,iowait]"), equalTo("system.cpu.util.iowait"));
+        assertThat(metricMapper.getMetricName("proc.num[,,run]"), equalTo("proc.num.run"));
     }
 
     @Test
