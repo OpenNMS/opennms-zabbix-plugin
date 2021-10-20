@@ -1,4 +1,4 @@
-package org.opennms.plugins.zabbix.shell;
+package org.opennms.plugins.zabbix.lab;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -29,8 +29,6 @@ import org.opennms.integration.api.v1.model.immutables.ImmutableEventParameter;
 import org.opennms.integration.api.v1.model.immutables.ImmutableInMemoryEvent;
 import org.opennms.plugins.zabbix.ZabbixAgentCollector;
 import org.opennms.plugins.zabbix.agent.ZabbixAgent;
-import org.opennms.plugins.zabbix.lab.LabContextManager;
-import org.opennms.plugins.zabbix.lab.LabRequisitionProvider;
 
 import com.google.common.collect.ImmutableMap;
 

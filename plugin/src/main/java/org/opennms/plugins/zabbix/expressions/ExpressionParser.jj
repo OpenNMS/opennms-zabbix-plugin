@@ -1,0 +1,93 @@
+options {
+    STATIC = false;
+}
+PARSER_BEGIN(ExpressionParser)
+
+package org.opennms.plugins.zabbix.expressions;
+
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
+
+public class ExpressionParser extends ExpressionParserBase {
+
+    public ExpressionParser() {
+        this(new StringReader(""));
+    }
+
+}
+
+PARSER_END(ExpressionParser)
+
+// Skip whitespace characters
+SKIP : {
+  " "
+| "\t"
+| "\r"
+| "\n"
+| "\r\n"
+}
+
+<*> TOKEN : {
+  // Escape all characters followed by a backslash
+  <#_ESCAPED_CHAR: "\\" ~[] >
+| <#_TERM_START_CHAR: ( ~[ " ", "\t", "\n", "\r", "\u3000", "(", ")", ":",  "\"", "\\", "/" ]
+                       | <_ESCAPED_CHAR> ) >
+| <#_TERM_CHAR: ( <_TERM_START_CHAR> | <_ESCAPED_CHAR> ) >
+}
+
+TOKEN : {
+  <AND: ("AND" | "and" | "&&") >
+| <OR: ("OR" | "or" | "||") >
+| <LPAREN: "(" >
+| <RPAREN: ")" >
+| <COLON: ":" >
+}
+
+TOKEN : {
+  <MINUS: "-" >
+| <NOT: "not" >
+| <MULTIPLICATION: "*" >
+| <DIVISION: "/" >
+| <PLUS: "+" >
+| <LESS_THAN: "<" >
+| <LESS_THAN_OR_EQUAL: "<=" >
+| <MORE_THAN: ">" >
+| <MORE_THAN_OR_EQUAL: ">=" >
+| <EQUAL: "=" >
+| <NOT_EQUAL: "<>" >
+| <MACRO: "{" (["a"-"z","A"-"Z",".","0"-"9",",","[","{","#","}","]","\"",":","$"])+ "}"  >
+| <OPERATOR: (<MINUS>|<MULTIPLICATION>|<DIVISION>|<PLUS>|<LESS_THAN>|<LESS_THAN_OR_EQUAL>|<MORE_THAN>|<MORE_THAN_OR_EQUAL>|<EQUAL>|<NOT_EQUAL>) >
+| <FUNCTION_NAME: (["a"-"z","0"-"9"])+  >
+| <PARAMETER: (["a"-"z","A"-"Z",".","0"-"9",",","/","[","{","#","}","]"])+  >
+}
+
+/** Main production. */
+Expression TopLevelExpression() : {
+ Expression e;
+}
+{
+  e=Expression() <EOF>
+  { return e; }
+}
+
+Expression Expression() : {
+  List<Parameter> parameters = new ArrayList<>();
+  Token function, op, body, constant = null;
+  Expression e = null;
+}
+{
+  function=<FUNCTION_NAME>
+  <LPAREN>
+  (
+   LOOKAHEAD(2)
+   e=Expression()|body=<PARAMETER>|body=<FUNCTION_NAME>
+   { if (e != null) { parameters.add(e); } else { parameters.add(new Parameter(body.image)); } }
+  )*
+  <RPAREN>
+  (op=<MINUS>|op=<MULTIPLICATION>|op=<DIVISION>|op=<PLUS>|op=<LESS_THAN>|op=<LESS_THAN_OR_EQUAL>|op=<MORE_THAN>|op=<MORE_THAN_OR_EQUAL>|op=<EQUAL>|op=<NOT_EQUAL>)
+  (constant=<PARAMETER> | constant=<MACRO> | constant=<FUNCTION_NAME>)
+  { e = new Expression(function.image, parameters, op.image, constant.image); }
+
+  { return e; }
+}
