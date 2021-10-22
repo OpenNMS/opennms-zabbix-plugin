@@ -1,6 +1,3 @@
-options {
-    STATIC = false;
-}
 PARSER_BEGIN(ExpressionParser)
 
 package org.opennms.plugins.zabbix.expressions;
@@ -14,7 +11,6 @@ public class ExpressionParser extends ExpressionParserBase {
     public ExpressionParser() {
         this(new StringReader(""));
     }
-
 }
 
 PARSER_END(ExpressionParser)
@@ -28,24 +24,16 @@ SKIP : {
 | "\r\n"
 }
 
-<*> TOKEN : {
-  // Escape all characters followed by a backslash
-  <#_ESCAPED_CHAR: "\\" ~[] >
-| <#_TERM_START_CHAR: ( ~[ " ", "\t", "\n", "\r", "\u3000", "(", ")", ":",  "\"", "\\", "/" ]
-                       | <_ESCAPED_CHAR> ) >
-| <#_TERM_CHAR: ( <_TERM_START_CHAR> | <_ESCAPED_CHAR> ) >
-}
-
 TOKEN : {
   <AND: ("AND" | "and" | "&&") >
 | <OR: ("OR" | "or" | "||") >
 | <LPAREN: "(" >
 | <RPAREN: ")" >
-| <COLON: ":" >
 }
 
 TOKEN : {
-  <MINUS: "-" >
+  <OPERATOR: (<MINUS>|<MULTIPLICATION>|<DIVISION>|<PLUS>|<LESS_THAN>|<LESS_THAN_OR_EQUAL>|<MORE_THAN>|<MORE_THAN_OR_EQUAL>|<EQUAL>|<NOT_EQUAL>) >
+| <MINUS: "-" >
 | <NOT: "not" >
 | <MULTIPLICATION: "*" >
 | <DIVISION: "/" >
@@ -57,9 +45,10 @@ TOKEN : {
 | <EQUAL: "=" >
 | <NOT_EQUAL: "<>" >
 | <MACRO: "{" (["a"-"z","A"-"Z",".","0"-"9",",","[","{","#","}","]","\"",":","$"])+ "}"  >
-| <OPERATOR: (<MINUS>|<MULTIPLICATION>|<DIVISION>|<PLUS>|<LESS_THAN>|<LESS_THAN_OR_EQUAL>|<MORE_THAN>|<MORE_THAN_OR_EQUAL>|<EQUAL>|<NOT_EQUAL>) >
-| <FUNCTION_NAME: (["a"-"z","0"-"9"])+  >
-| <PARAMETER: (["a"-"z","A"-"Z",".","0"-"9",",","/","[","{","#","}","]"])+  >
+| <NUMBER: (["0"-"9","."])+  >
+| <NUMBER_WITH_UNIT: <NUMBER>(["a"-"z"])+  >
+| <FUNCTION_CALL: ["a"-"z"](["a"-"z","0"-"9"])+>
+| <HOST_AND_KEY: "/" (["a"-"z","A"-"Z","0"-"9"," "])+ "/" (["a"-"z","A"-"Z","0"-"9","[","{","#","}","]","."])+ >
 }
 
 /** Main production. */
@@ -71,23 +60,27 @@ Expression TopLevelExpression() : {
   { return e; }
 }
 
-Expression Expression() : {
-  List<Parameter> parameters = new ArrayList<>();
-  Token function, op, body, constant = null;
-  Expression e = null;
+Parameter FunctionParameter() : {
+   Token body;
+   Expression e;
 }
 {
-  function=<FUNCTION_NAME>
-  <LPAREN>
-  (
-   LOOKAHEAD(2)
-   e=Expression()|body=<PARAMETER>|body=<FUNCTION_NAME>
-   { if (e != null) { parameters.add(e); } else { parameters.add(new Parameter(body.image)); } }
-  )*
-  <RPAREN>
-  (op=<MINUS>|op=<MULTIPLICATION>|op=<DIVISION>|op=<PLUS>|op=<LESS_THAN>|op=<LESS_THAN_OR_EQUAL>|op=<MORE_THAN>|op=<MORE_THAN_OR_EQUAL>|op=<EQUAL>|op=<NOT_EQUAL>)
-  (constant=<PARAMETER> | constant=<MACRO> | constant=<FUNCTION_NAME>)
-  { e = new Expression(function.image, parameters, op.image, constant.image); }
+  e=Expression(){return e;}|body=<HOST_AND_KEY>{return new Parameter(body.image);}|body=<NUMBER>{return new Parameter(body.image);}|body=<NUMBER_WITH_UNIT>{return new Parameter(body.image);}
+}
 
+Expression Expression() : {
+  List<Parameter> parameters = new ArrayList<>();
+  Token function = null, op = null, body = null, constant = null;
+  Parameter p;
+  Expression e;
+}
+{
+  function=<FUNCTION_CALL>
+  <LPAREN>
+  p=FunctionParameter(){parameters.add(p);} ("," p=FunctionParameter(){parameters.add(p);})*
+  <RPAREN>
+  op=<OPERATOR>
+  (constant=<NUMBER>|constant=<MACRO>)
+  { e = new Expression(function.image, parameters, op.image, constant.image); }
   { return e; }
 }
