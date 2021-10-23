@@ -44,11 +44,11 @@ TOKEN : {
 | <MORE_THAN_OR_EQUAL: ">=" >
 | <EQUAL: "=" >
 | <NOT_EQUAL: "<>" >
-| <MACRO: "{" (["a"-"z","A"-"Z",".","0"-"9",",","[","{","#","}","]","\"",":","$"])+ "}"  >
-| <NUMBER: (["0"-"9","."])+  >
-| <NUMBER_WITH_UNIT: <NUMBER>(["a"-"z"])+  >
 | <FUNCTION_CALL: ["a"-"z"](["a"-"z","0"-"9"])+>
-| <HOST_AND_KEY: "/" (["a"-"z","A"-"Z","0"-"9"," "])+ "/" (["a"-"z","A"-"Z","0"-"9","[","{","#","}","]","."])+ >
+| <HOST_AND_KEY: "/" (["a"-"z","A"-"Z","0"-"9"," "])* "/" (["a"-"z","A"-"Z","0"-"9","[","{","#","}","]","."])+ >
+| <MACRO: "{" (["a"-"z","A"-"Z",".","0"-"9",",","[","{","#","}","]","\"",":","$"])+ "}"  >
+| <NUMBER_WITH_UNIT: <NUMBER>(["a"-"z"])+  >
+| <NUMBER: (["0"-"9","."])+  >
 }
 
 /** Main production. */
@@ -62,10 +62,10 @@ Expression TopLevelExpression() : {
 
 Term FunctionParameter() : {
    Token body;
-   Expression e;
+   FunctionCall f;
 }
 {
-  e=Expression(){return e;}|body=<HOST_AND_KEY>{return new Constant(body.image);}|body=<NUMBER>{return new Constant(body.image);}|body=<NUMBER_WITH_UNIT>{return new Constant(body.image);}
+  f=FunctionCall(){return f;}|body=<HOST_AND_KEY>{return new Constant(body.image);}|body=<NUMBER>{return new Constant(body.image);}|body=<NUMBER_WITH_UNIT>{return new Constant(body.image);}
 }
 
 FunctionCall FunctionCall() : {
@@ -94,8 +94,8 @@ Expression Expression() : {
   Token op;
 }
 {
-  lhs=FunctionCall()
+  (lhs=Constant()|lhs=FunctionCall())
   op=<OPERATOR>
-  rhs=Constant()
+  (rhs=Constant()|rhs=FunctionCall())
   { return new Expression(lhs, op.image, rhs); }
 }

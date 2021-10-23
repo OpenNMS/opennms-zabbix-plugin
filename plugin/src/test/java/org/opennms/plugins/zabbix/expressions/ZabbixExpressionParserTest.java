@@ -29,13 +29,21 @@ public class ZabbixExpressionParserTest {
         constant = (Constant)expression.getRhs();
         assertThat(constant.getValue(), equalTo("{$VFS.DEV.READ.AWAIT.WARN:\"{#DEVNAME}\"}"));
 
-//        expression = parser.parse("min(/Linux block devices by Zabbix agent/vfs.dev.read.await[{#DEVNAME}],15m) > {$VFS.DEV.READ.AWAIT.WARN:\"{#DEVNAME}\"} or min(/Linux block devices by Zabbix agent/vfs.dev.write.await[{#DEVNAME}],15m) > {$VFS.DEV.WRITE.AWAIT.WARN:\"{#DEVNAME}\"}");
-//        assertThat(expression.getName(), equalTo("min"));
-//        assertThat(expression.getParameters(), contains(
-//                new Parameter("/Linux block devices by Zabbix agent/vfs.dev.read.await[{#DEVNAME}]"),
-//                new Parameter("15m")));
-//        assertThat(expression.getOperator(), equalTo(">"));
-//        assertThat(expression.getConstant(), equalTo("{$VFS.DEV.READ.AWAIT.WARN:\"{#DEVNAME}\"}"));
+        expression = parser.parse("min(/Linux block devices by Zabbix agent/vfs.dev.read.await[{#DEVNAME}],15m) > {$VFS.DEV.READ.AWAIT.WARN:\"{#DEVNAME}\"}");
+        fn = (FunctionCall)expression.getLhs();
+        assertThat(fn.getName(), equalTo("min"));
+        assertThat(fn.getParameters(), contains(
+                new Constant("/Linux block devices by Zabbix agent/vfs.dev.read.await[{#DEVNAME}]"),
+                new Constant("15m")));
+        assertThat(expression.getOperator(), equalTo(">"));
+        constant = (Constant)expression.getRhs();
+        assertThat(constant.getValue(), equalTo("{$VFS.DEV.READ.AWAIT.WARN:\"{#DEVNAME}\"}"));
+
+        expression = parser.parse("{$IFCONTROL:\"{#IFNAME}\"}=0");
+        constant = (Constant)expression.getLhs();
+        assertThat(constant.getValue(), equalTo("{$IFCONTROL:\"{#IFNAME}\"}"));
+        constant = (Constant)expression.getRhs();
+        assertThat(constant.getValue(), equalTo("0"));
     }
 
 }
