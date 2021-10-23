@@ -5,7 +5,6 @@ import java.util.StringJoiner;
 
 public class Expression implements Term {
 
-
     private final Term lhs, rhs;
     private final String operator;
 

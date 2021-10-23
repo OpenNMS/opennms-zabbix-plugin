@@ -56,7 +56,7 @@ Expression TopLevelExpression() : {
  Expression e;
 }
 {
-  e=Expression() <EOF>
+  e=Expression() (<OPERATOR> Expression())* <EOF>
   { return e; }
 }
 
@@ -68,19 +68,34 @@ Term FunctionParameter() : {
   e=Expression(){return e;}|body=<HOST_AND_KEY>{return new Constant(body.image);}|body=<NUMBER>{return new Constant(body.image);}|body=<NUMBER_WITH_UNIT>{return new Constant(body.image);}
 }
 
-Expression Expression() : {
+FunctionCall FunctionCall() : {
   List<Term> parameters = new ArrayList<>();
-  Token function = null, op = null, body = null, constant = null;
   Term p;
-  Expression e;
+  Token function = null;
 }
 {
   function=<FUNCTION_CALL>
   <LPAREN>
   p=FunctionParameter(){parameters.add(p);} ("," p=FunctionParameter(){parameters.add(p);})*
   <RPAREN>
+  { return new FunctionCall(function.image, parameters); }
+}
+
+Constant Constant() : {
+  Token c;
+}
+{
+  (c=<NUMBER>|c=<MACRO>)
+  { return new Constant(c.image); }
+}
+
+Expression Expression() : {
+  Term lhs,rhs;
+  Token op;
+}
+{
+  lhs=FunctionCall()
   op=<OPERATOR>
-  (constant=<NUMBER>|constant=<MACRO>)
-  { e = new Expression(new FunctionCall(function.image, parameters), op.image, new Constant(constant.image)); }
-  { return e; }
+  rhs=Constant()
+  { return new Expression(lhs, op.image, rhs); }
 }
