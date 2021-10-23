@@ -44,6 +44,15 @@ public class ZabbixExpressionParserTest {
         assertThat(constant.getValue(), equalTo("{$IFCONTROL:\"{#IFNAME}\"}"));
         constant = (Constant)expression.getRhs();
         assertThat(constant.getValue(), equalTo("0"));
+
+        expression = parser.parse("min(/Linux block devices by Zabbix agent/vfs.dev.read.await[{#DEVNAME}],15m) > {$VFS.DEV.READ.AWAIT.WARN:\"{#DEVNAME}\"} or min(/Linux block devices by Zabbix agent/vfs.dev.write.await[{#DEVNAME}],15m) > {$VFS.DEV.WRITE.AWAIT.WARN:\"{#DEVNAME}\"}");
+        Expression lhsExression = (Expression)expression.getLhs();
+        fn = (FunctionCall)lhsExression.getLhs();
+        assertThat(fn.getName(), equalTo("min"));
+        assertThat(expression.getOperator(), equalTo("or"));
+        Expression rhsExpression = (Expression)expression.getRhs();
+        fn = (FunctionCall)rhsExpression.getLhs();
+        assertThat(fn.getName(), equalTo("min"));
     }
 
 }
