@@ -3,11 +3,59 @@ package org.opennms.plugins.zabbix.expressions;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 
 import org.junit.Test;
 
 public class ZabbixExpressionParserTest {
     private ExpressionParser parser = new ExpressionParser();
+
+    /**
+     * See https://www.zabbix.com/documentation/current/manual/config/items/item/key for syntax
+     */
+    @Test
+    public void canParseKey() throws org.opennms.plugins.zabbix.expressions.ParseException {
+        // simple key
+        ItemKey itemKey = parser.parseItem("agent.ping");
+        assertThat(itemKey.getParameters(), hasSize(0));
+        // multiple parameters
+        itemKey = parser.parseItem("icmpping[,,200,,500]");
+        assertThat(itemKey.getParameters(), hasSize(5));
+        // single parameter containing /
+        itemKey = parser.parseItem("vfs.file.contents[/sys/block/{#DEVNAME}/stat]");
+        assertThat(itemKey.getParameters(), hasSize(1));
+        // array handling
+        itemKey = parser.parseItem("key[[1,2,3],[4,5,6],]");
+        assertThat(itemKey.getParameters(), hasSize(2));
+        // quote handling
+        itemKey = parser.parseItem("key[\"hey this comma,is quoted\"]");
+        assertThat(itemKey.getParameters(), hasSize(1));
+        // quote handling
+        itemKey = parser.parseItem("key[\"hey this quote\\\"is quoted\"]");
+        assertThat(itemKey.getParameters(), hasSize(1));
+    }
+
+    /**
+     * Alphanumerics, spaces, dots, dashes and underscores are allowed.
+     */
+    @Test
+    public void canParseHostAndKey() throws org.opennms.plugins.zabbix.expressions.ParseException {
+        // simple key
+        HostAndKey hostAndKey = parser.parseHostAndKey("/a/b");
+        assertThat(hostAndKey.getHost(), equalTo("a"));
+        assertThat(hostAndKey.getKey().getName(), equalTo("b"));
+
+        // complex key
+        hostAndKey = parser.parseHostAndKey("/a1.b2.d-9.c_7/b[1]");
+        assertThat(hostAndKey.getHost(), equalTo("a1.b2.d-9.c_7"));
+        assertThat(hostAndKey.getKey().getName(), equalTo("b"));
+
+        // key with /
+        hostAndKey = parser.parseHostAndKey("/host/vfs.fs.size[/,free]");
+        assertThat(hostAndKey.getHost(), equalTo("host"));
+        assertThat(hostAndKey.getKey().getName(), equalTo("vfs.fs.size"));
+        assertThat(hostAndKey.getKey().getParameters().get(0), equalTo("/"));
+    }
 
     @Test
     public void canParseExpression() throws org.opennms.plugins.zabbix.expressions.ParseException {
@@ -53,7 +101,6 @@ public class ZabbixExpressionParserTest {
         Expression rhsExpression = (Expression)expression.getRhs();
         fn = (FunctionCall)rhsExpression.getLhs();
         assertThat(fn.getName(), equalTo("min"));
-
 
         expression = parser.parse("max(1,2)>5 or max(2,3)>4");
         expression = parser.parse("max(1,2)>5 or (max(2,3)>4 and max(1,2)<4)");

@@ -20,4 +20,13 @@ public abstract class ExpressionParserBase {
         }
     }
 
+    public ItemKey parseItem(String input) throws ParseException {
+        throw new ParseException("oops");
+    }
+
+
+    public HostAndKey parseHostAndKey(String input) throws ParseException {
+        throw new ParseException("oops");
+    }
+
 }
