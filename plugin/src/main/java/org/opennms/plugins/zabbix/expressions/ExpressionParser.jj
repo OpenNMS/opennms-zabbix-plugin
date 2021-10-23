@@ -42,10 +42,10 @@ TOKEN : {
 | <EQUAL: "=" >
 | <NOT_EQUAL: "<>" >
 | <FUNCTION_CALL: ["a"-"z"](["a"-"z","0"-"9"])+>
-| <HOST_AND_KEY: "/" (["a"-"z","A"-"Z","0"-"9"," "])* "/" (["a"-"z","A"-"Z","0"-"9","[","{","#","}","]","."])+ >
+| <HOST_AND_KEY: "/" (["a"-"z","A"-"Z","0"-"9"," "])* "/" (["a"-"z","A"-"Z","0"-"9","[","{","#","}","]",".","/"])+ >
 | <MACRO: "{" (["a"-"z","A"-"Z",".","0"-"9",",","[","{","#","}","]","\"",":","$"])+ "}"  >
 | <NUMBER_WITH_UNIT: <NUMBER>(["a"-"z"])+  >
-| <NUMBER: (["0"-"9","."])+  >
+| <NUMBER: (["-"])?(["0"-"9","."])+  >
 }
 
 /** Main production. */
@@ -98,15 +98,28 @@ Expression Expression() : {
 }
 
 Expression CompoundExpression() : {
-  Expression lhs,e;
+  Expression lhs=null,e=null;
   Token op;
 }
 {
-  lhs=Expression()
+  lhs=Clause()
   (
     op=<OPERATOR>
-    e=Expression()
+    e=Clause()
     {lhs=new Expression(lhs,op.image,e);}
   )*
   { return lhs; }
+}
+
+Expression Clause() : {
+  Expression e=null;
+  Token fieldToken=null;
+}
+{
+  (
+   LOOKAHEAD(2)
+   e=Expression()
+   | <LPAREN> e=CompoundExpression() <RPAREN>
+  )
+  { return e; }
 }

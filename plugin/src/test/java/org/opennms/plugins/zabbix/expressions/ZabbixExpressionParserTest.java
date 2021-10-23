@@ -53,6 +53,12 @@ public class ZabbixExpressionParserTest {
         Expression rhsExpression = (Expression)expression.getRhs();
         fn = (FunctionCall)rhsExpression.getLhs();
         assertThat(fn.getName(), equalTo("min"));
+
+
+        expression = parser.parse("max(1,2)>5 or max(2,3)>4");
+        expression = parser.parse("max(1,2)>5 or (max(2,3)>4 and max(1,2)<4)");
+        //expression = parser.parse("timeleft(/host/vfs.fs.size[/,free],1h,0)");
+       // expression = parser.parse("timeleft(/host/vfs.fs.size[a,free],1h,0)<1h and ({TRIGGER.VALUE}=0 and timeleft(/host/vfs.fs.size[a,free],1h,0)<>-1 or {TRIGGER.VALUE}=1)");
     }
 
 }
