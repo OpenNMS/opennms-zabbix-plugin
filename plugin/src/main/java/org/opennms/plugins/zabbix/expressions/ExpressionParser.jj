@@ -60,18 +60,18 @@ Expression TopLevelExpression() : {
   { return e; }
 }
 
-Parameter FunctionParameter() : {
+Term FunctionParameter() : {
    Token body;
    Expression e;
 }
 {
-  e=Expression(){return e;}|body=<HOST_AND_KEY>{return new Parameter(body.image);}|body=<NUMBER>{return new Parameter(body.image);}|body=<NUMBER_WITH_UNIT>{return new Parameter(body.image);}
+  e=Expression(){return e;}|body=<HOST_AND_KEY>{return new Constant(body.image);}|body=<NUMBER>{return new Constant(body.image);}|body=<NUMBER_WITH_UNIT>{return new Constant(body.image);}
 }
 
 Expression Expression() : {
-  List<Parameter> parameters = new ArrayList<>();
+  List<Term> parameters = new ArrayList<>();
   Token function = null, op = null, body = null, constant = null;
-  Parameter p;
+  Term p;
   Expression e;
 }
 {
@@ -81,6 +81,6 @@ Expression Expression() : {
   <RPAREN>
   op=<OPERATOR>
   (constant=<NUMBER>|constant=<MACRO>)
-  { e = new Expression(function.image, parameters, op.image, constant.image); }
+  { e = new Expression(new FunctionCall(function.image, parameters), op.image, new Constant(constant.image)); }
   { return e; }
 }

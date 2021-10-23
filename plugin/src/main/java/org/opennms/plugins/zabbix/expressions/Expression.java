@@ -1,36 +1,57 @@
 package org.opennms.plugins.zabbix.expressions;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.Objects;
+import java.util.StringJoiner;
 
-public class Expression extends Parameter {
+public class Expression implements Term {
 
-    private final String name;
-    private final List<Parameter> parameters;
+
+    private final Term lhs, rhs;
     private final String operator;
-    private final String constant;
 
-    public Expression(String name, List<Parameter> parameters, String operator, String constant) {
-        super(name);
-        this.name = name;
-        this.parameters = Collections.unmodifiableList(parameters);
+    public Expression(Term lhs) {
+        this.lhs = Objects.requireNonNull(lhs);
+        this.operator = null;
+        this.rhs = null;
+    }
+
+    public Expression(Term lhs, String operator, Term rhs) {
+        this.lhs = Objects.requireNonNull(lhs);
         this.operator = operator;
-        this.constant = constant;
+        this.rhs = rhs;
     }
 
-    public String getName() {
-        return name;
+    public Term getLhs() {
+        return lhs;
     }
 
-    public List<Parameter> getParameters() {
-        return parameters;
+    public Term getRhs() {
+        return rhs;
     }
 
     public String getOperator() {
         return operator;
     }
 
-    public String getConstant() {
-        return constant;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Expression that = (Expression) o;
+        return Objects.equals(lhs, that.lhs) && Objects.equals(rhs, that.rhs) && Objects.equals(operator, that.operator);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(lhs, rhs, operator);
+    }
+
+    @Override
+    public String toString() {
+        return new StringJoiner(", ", Expression.class.getSimpleName() + "[", "]")
+                .add("lhs=" + lhs)
+                .add("rhs=" + rhs)
+                .add("operator='" + operator + "'")
+                .toString();
     }
 }

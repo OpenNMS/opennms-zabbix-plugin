@@ -12,19 +12,30 @@ public class ZabbixExpressionParserTest {
     @Test
     public void canParseExpression() throws org.opennms.plugins.zabbix.expressions.ParseException {
         Expression expression = parser.parse("max(123,1) + 5");
-        assertThat(expression.getName(), equalTo("max"));
-        assertThat(expression.getParameters(), contains(new Parameter("123"), new Parameter("1")));
+        FunctionCall fn = (FunctionCall)expression.getLhs();
+        assertThat(fn.getName(), equalTo("max"));
+        assertThat(fn.getParameters(), contains(new Constant("123"), new Constant("1")));
         assertThat(expression.getOperator(), equalTo("+"));
-        assertThat(expression.getConstant(), equalTo("5"));
+        Constant constant = (Constant)expression.getRhs();
+        assertThat(constant.getValue(), equalTo("5"));
 
         expression = parser.parse("min(/Linux block devices by Zabbix agent/vfs.dev.read.await[{#DEVNAME}],15m) > {$VFS.DEV.READ.AWAIT.WARN:\"{#DEVNAME}\"}");
-        assertThat(expression.getName(), equalTo("min"));
-        System.out.println(expression.getParameters());
-        assertThat(expression.getParameters(), contains(
-                new Parameter("/Linux block devices by Zabbix agent/vfs.dev.read.await[{#DEVNAME}]"),
-                new Parameter("15m")));
+        fn = (FunctionCall)expression.getLhs();
+        assertThat(fn.getName(), equalTo("min"));
+        assertThat(fn.getParameters(), contains(
+                new Constant("/Linux block devices by Zabbix agent/vfs.dev.read.await[{#DEVNAME}]"),
+                new Constant("15m")));
         assertThat(expression.getOperator(), equalTo(">"));
-        assertThat(expression.getConstant(), equalTo("{$VFS.DEV.READ.AWAIT.WARN:\"{#DEVNAME}\"}"));
+        constant = (Constant)expression.getRhs();
+        assertThat(constant.getValue(), equalTo("{$VFS.DEV.READ.AWAIT.WARN:\"{#DEVNAME}\"}"));
+
+//        expression = parser.parse("min(/Linux block devices by Zabbix agent/vfs.dev.read.await[{#DEVNAME}],15m) > {$VFS.DEV.READ.AWAIT.WARN:\"{#DEVNAME}\"} or min(/Linux block devices by Zabbix agent/vfs.dev.write.await[{#DEVNAME}],15m) > {$VFS.DEV.WRITE.AWAIT.WARN:\"{#DEVNAME}\"}");
+//        assertThat(expression.getName(), equalTo("min"));
+//        assertThat(expression.getParameters(), contains(
+//                new Parameter("/Linux block devices by Zabbix agent/vfs.dev.read.await[{#DEVNAME}]"),
+//                new Parameter("15m")));
+//        assertThat(expression.getOperator(), equalTo(">"));
+//        assertThat(expression.getConstant(), equalTo("{$VFS.DEV.READ.AWAIT.WARN:\"{#DEVNAME}\"}"));
     }
 
 }

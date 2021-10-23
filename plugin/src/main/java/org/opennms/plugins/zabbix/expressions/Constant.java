@@ -4,11 +4,10 @@ import java.util.Objects;
 
 import com.google.common.base.MoreObjects;
 
-public class Parameter {
-
+public class Constant implements Term {
     private final String value;
 
-    public Parameter(String value) {
+    public Constant(String value) {
         this.value = Objects.requireNonNull(value);
     }
 
@@ -20,8 +19,8 @@ public class Parameter {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Parameter parameter = (Parameter) o;
-        return Objects.equals(value, parameter.value);
+        Constant constant = (Constant) o;
+        return Objects.equals(value, constant.value);
     }
 
     @Override
