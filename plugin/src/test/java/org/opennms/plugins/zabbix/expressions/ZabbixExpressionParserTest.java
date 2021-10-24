@@ -49,12 +49,12 @@ public class ZabbixExpressionParserTest {
                 equalTo(new Array(Arrays.asList(new Constant("1"), new Constant("2")))));
         assertThat(itemKey.getParameters().get(1),
                 equalTo(new Array(Arrays.asList(new Constant("4"), new Constant("5"), new Constant("6")))));
-//        // quote handling
-//        itemKey = itemParser.parse("key[\"hey this comma,is quoted\"]");
-//        assertThat(itemKey.getParameters(), hasSize(1));
-//        // quote handling
-//        itemKey = itemParser.parse("key[\"hey this quote\\\"is quoted\"]");
-//        assertThat(itemKey.getParameters(), hasSize(1));
+        // quote handling
+        itemKey = itemParser.parse("key[\"hey this comma,is quoted\"]");
+        assertThat(itemKey.getParameters(), hasSize(1));
+        // quote handling
+        itemKey = itemParser.parse("key[\"hey this quote\\\"is quoted\"]");
+        assertThat(itemKey.getParameters(), hasSize(1));
     }
 
     /**

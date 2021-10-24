@@ -36,8 +36,17 @@ TOKEN : {
 
 <IN_KEY_PARM> TOKEN: {
    < ARRAY_PARM_START: "[" > : IN_ARRAY
-   // "[" is be allowed in parameter values, provided they don't start
- | < ANYTHING : (~["[", ",", "]"])(~[",", "]"])* >
+ | <QUOTED:
+       "\""
+       (
+           "\\" ~[]    //any escaped character
+           |           //or
+           ~["\""]      //any non-quote character
+       )*
+       "\""
+   >
+   // [ and " are be allowed in parameter values, provided they don't start
+ | < ANYTHING : (~["[", ",", "]", "\""])(~[",", "]"])* >
  | < COMMA: "," >
  | < RSQUARE: "]" > : DEFAULT
 }
@@ -63,10 +72,13 @@ Array Array() : {
 
 Term KeyParameter() : {
   Array a;
+  Constant c;
   Token p;
 } {
   // the parameter can be an array
   (a=Array(){ return a; }) |
+  // a quoted string
+  (p=<QUOTED>{ return new Constant(p.image); }) |
   // some some other constant
   (p=<ANYTHING>{ return new Constant(p.image); })
 }
