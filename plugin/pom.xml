@@ -52,6 +52,7 @@
                 <version>4.1.4</version>
                 <executions>
                     <execution>
+                        <id>expressions</id>
                         <phase>generate-sources</phase>
                         <goals>
                             <goal>javacc</goal>
@@ -60,6 +61,19 @@
                             <jdkVersion>1.8</jdkVersion>
                             <packageName>org.opennms.plugins.zabbix.expressions</packageName>
                             <sourceDirectory>src/main/java/org/opennms/plugins/zabbix/expressions</sourceDirectory>
+                            <outputDirectory>${project.build.directory}/generated-sources/javacc</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>items</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>javacc</goal>
+                        </goals>
+                        <configuration>
+                            <jdkVersion>1.8</jdkVersion>
+                            <packageName>org.opennms.plugins.zabbix.items</packageName>
+                            <sourceDirectory>src/main/java/org/opennms/plugins/zabbix/items</sourceDirectory>
                             <outputDirectory>${project.build.directory}/generated-sources/javacc</outputDirectory>
                         </configuration>
                     </execution>

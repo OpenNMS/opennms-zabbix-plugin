@@ -1,0 +1,41 @@
+PARSER_BEGIN(ItemParser)
+
+package org.opennms.plugins.zabbix.items;
+
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import org.opennms.plugins.zabbix.expressions.ItemKey;
+
+public class ItemParser extends ItemParserBase {
+
+    public ItemParser() {
+        this(new StringReader(""));
+    }
+}
+
+PARSER_END(ItemParser)
+
+// Skip whitespace characters
+SKIP : {
+  " "
+| "\t"
+| "\r"
+| "\n"
+| "\r\n"
+}
+
+TOKEN : {
+  <NAME: (["0"-"9","a"-"z","A"-"Z","_","-","."])+ >
+}
+
+/** Main production. */
+ItemKey TopLevelItem() : {
+ List<String> parameters = new LinkedList<>();
+ Token name;
+}
+{
+  name=<NAME> ("[" "]")? <EOF>
+  { return new ItemKey(name.image, parameters); }
+}
