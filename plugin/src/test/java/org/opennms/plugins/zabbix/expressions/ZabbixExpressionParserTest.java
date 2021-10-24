@@ -8,7 +8,6 @@ import static org.hamcrest.Matchers.hasSize;
 import java.util.Arrays;
 
 import org.junit.Test;
-import org.opennms.plugins.zabbix.items.ItemParser;
 
 public class ZabbixExpressionParserTest {
     private ExpressionParser parser = new ExpressionParser();
@@ -17,42 +16,40 @@ public class ZabbixExpressionParserTest {
      * See https://www.zabbix.com/documentation/current/manual/config/items/item/key for syntax
      */
     @Test
-    public void canParseKey() throws org.opennms.plugins.zabbix.items.ParseException {
-        ItemParser itemParser = new ItemParser();
-
+    public void canParseKey() throws ParseException {
         // simple key
-        ItemKey itemKey = itemParser.parse("agent.ping");
+        ItemKey itemKey = parser.parseItem("agent.ping");
         assertThat(itemKey.getParameters(), hasSize(0));
         // no parameters
-        itemKey = itemParser.parse("icmpping[]");
+        itemKey = parser.parseItem("icmpping[]");
         assertThat(itemKey.getParameters(), hasSize(1));
         // one parameter
-        itemKey = itemParser.parse("icmpping[1]");
+        itemKey = parser.parseItem("icmpping[1]");
         assertThat(itemKey.getParameters(), hasSize(1));
         assertThat(itemKey.getParameters().get(0), equalTo(new Constant("1")));
         // multiple parameters
-        itemKey = itemParser.parse("icmpping[,,200,,500]");
+        itemKey = parser.parseItem("icmpping[,,200,,500]");
         assertThat(itemKey.getParameters(), hasSize(5));
         // single parameter containing /
-        itemKey = itemParser.parse("vfs.file.contents[/sys/block/{#DEVNAME}/stat]");
+        itemKey = parser.parseItem("vfs.file.contents[/sys/block/{#DEVNAME}/stat]");
         assertThat(itemKey.getParameters(), hasSize(1));
         assertThat(itemKey.getParameters().get(0), equalTo(new Constant("/sys/block/{#DEVNAME}/stat")));
         // single parameter containing [
-        itemKey = itemParser.parse("boo[a[]");
+        itemKey = parser.parseItem("boo[a[]");
         assertThat(itemKey.getParameters(), hasSize(1));
         assertThat(itemKey.getParameters().get(0), equalTo(new Constant("a[")));
         // array handling
-        itemKey = itemParser.parse("key[[1,2],[4,5,6]]");
+        itemKey = parser.parseItem("key[[1,2],[4,5,6]]");
         assertThat(itemKey.getParameters(), hasSize(2));
         assertThat(itemKey.getParameters().get(0),
                 equalTo(new Array(Arrays.asList(new Constant("1"), new Constant("2")))));
         assertThat(itemKey.getParameters().get(1),
                 equalTo(new Array(Arrays.asList(new Constant("4"), new Constant("5"), new Constant("6")))));
         // quote handling
-        itemKey = itemParser.parse("key[\"hey this comma,is quoted\"]");
+        itemKey = parser.parseItem("key[\"hey this comma,is quoted\"]");
         assertThat(itemKey.getParameters(), hasSize(1));
         // quote handling
-        itemKey = itemParser.parse("key[\"hey this quote\\\"is quoted\"]");
+        itemKey = parser.parseItem("key[\"hey this quote\\\"is quoted\"]");
         assertThat(itemKey.getParameters(), hasSize(1));
     }
 
@@ -61,21 +58,19 @@ public class ZabbixExpressionParserTest {
      *  host: Alphanumerics, spaces, dots, dashes and underscores are allowed.
      */
     @Test
-    public void canParseHostAndKey() throws org.opennms.plugins.zabbix.items.ParseException {
-        ItemParser itemParser = new ItemParser();
-
+    public void canParseHostAndKey() throws ParseException {
         // simple key
-        HostAndKey hostAndKey = itemParser.parseHostAndKey("/a/b");
+        HostAndKey hostAndKey = parser.parseHostAndKey("/a/b");
         assertThat(hostAndKey.getHost(), equalTo("a"));
         assertThat(hostAndKey.getKey().getName(), equalTo("b"));
 
         // complex key
-        hostAndKey = itemParser.parseHostAndKey("/a1.b2.d-9.c_7/b[1]");
+        hostAndKey = parser.parseHostAndKey("/a1.b2.d-9.c_7/b[1]");
         assertThat(hostAndKey.getHost(), equalTo("a1.b2.d-9.c_7"));
         assertThat(hostAndKey.getKey().getName(), equalTo("b"));
 
         // key with /
-        hostAndKey = itemParser.parseHostAndKey("/host/vfs.fs.size[/,free]");
+        hostAndKey = parser.parseHostAndKey("/host/vfs.fs.size[/,free]");
         assertThat(hostAndKey.getHost(), equalTo("host"));
         assertThat(hostAndKey.getKey().getName(), equalTo("vfs.fs.size"));
         assertThat(hostAndKey.getKey().getParameters().get(0), equalTo(new Constant("/")));

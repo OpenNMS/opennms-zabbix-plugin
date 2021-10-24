@@ -4,6 +4,7 @@ package org.opennms.plugins.zabbix.expressions;
 
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class ExpressionParser extends ExpressionParserBase {
@@ -47,6 +48,64 @@ TOKEN : {
 | <NUMBER_WITH_UNIT: <NUMBER>(["a"-"z"])+  >
 | <NUMBER: (["-"])?(["0"-"9","."])+  >
 }
+
+<IN_ITEM> TOKEN : {
+    < NAME: (["0"-"9","a"-"z","A"-"Z","_","-","."])+ >
+  | < LSQUARE: "[" > : IN_KEY_PARM
+  | < FORWARD_SLASH: "/" > : IN_HOST
+}
+
+<IN_HOST> TOKEN: {
+    < HOST: (["0"-"9","a"-"z","A"-"Z","_","-","."," "])+ >
+  | < HOST_KEY_SEPARATOR: "/" > : IN_ITEM
+}
+
+<IN_KEY_PARM> TOKEN: {
+   < ARRAY_PARM_START: "[" > : IN_ARRAY
+ | <QUOTED:
+       "\""
+       (
+           "\\" ~[]    //any escaped character
+           |           //or
+           ~["\""]      //any non-quote character
+       )*
+       "\""
+   >
+   // [ and " are be allowed in parameter values, provided they don't start
+ | < ANYTHING : (~["[", ",", "]", "\""])(~[",", "]"])* >
+ | < COMMA: "," >
+ | < RSQUARE: "]" > : IN_ITEM
+}
+
+<IN_ARRAY> TOKEN: {
+   < COMMA_ARRAY: "," >
+ | < ARRAY_PARM_END: "]" > : IN_KEY_PARM
+ | < ANYTHING_ARRAY : (~[",", "]"])+ >
+}
+
+ItemKey TopLevelItem() : {
+ ItemKey item;
+}
+{
+  { token_source.SwitchTo(IN_ITEM); }
+  item=Item() <EOF>
+  { return item; }
+}
+
+HostAndKey TopLevelHostAndKey() : {
+ Token host;
+ ItemKey item;
+}
+{
+  { token_source.SwitchTo(IN_ITEM); }
+  <FORWARD_SLASH>
+  host=<HOST>
+  <HOST_KEY_SEPARATOR>
+  item=Item()
+  <EOF>
+  { return new HostAndKey(host.image, item); }
+}
+
 
 /** Main production. */
 Expression TopLevelExpression() : {
@@ -122,4 +181,48 @@ Expression Clause() : {
    | <LPAREN> e=CompoundExpression() <RPAREN>
   )
   { return e; }
+}
+
+
+Array Array() : {
+  List<Term> parameters = new LinkedList<>();
+  Token p;
+} {
+ <ARRAY_PARM_START>
+ // the first parameter
+ {p=null;}(p=<ANYTHING_ARRAY>{parameters.add(new Constant(p.image));})?{if(p==null){parameters.add(new Constant(""));}}
+ // subsequent parameters
+ (<COMMA_ARRAY> {p=null;}(p=<ANYTHING_ARRAY>{parameters.add(new Constant(p.image));})?{if(p==null){parameters.add(new Constant(""));}})*
+ <ARRAY_PARM_END>
+ { return new Array(parameters); }
+}
+
+Term KeyParameter() : {
+  Array a;
+  Constant c;
+  Token p;
+} {
+  // the parameter can be an array
+  (a=Array(){ return a; }) |
+  // a quoted string
+  (p=<QUOTED>{ return new Constant(p.image); }) |
+  // some some other constant
+  (p=<ANYTHING>{ return new Constant(p.image); })
+}
+
+ItemKey Item() : {
+ List<Term> parameters = new LinkedList<>();
+ Term p;
+ Token name;
+}
+{
+  name=<NAME> (
+    <LSQUARE>
+    // the first parameter
+    {p=null;}(p=KeyParameter(){parameters.add(p);})?{if(p==null){parameters.add(new Constant(""));}}
+    // subsequent parameters
+    (<COMMA> {p=null;}(p=KeyParameter(){parameters.add(p);})?{if(p==null){parameters.add(new Constant(""));}})*
+    <RSQUARE>
+  )?
+  { return new ItemKey(name.image, parameters); }
 }
