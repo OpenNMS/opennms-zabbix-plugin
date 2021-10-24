@@ -5,6 +5,8 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 
+import java.util.Arrays;
+
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opennms.plugins.zabbix.items.ItemParser;
@@ -24,22 +26,35 @@ public class ZabbixExpressionParserTest {
         assertThat(itemKey.getParameters(), hasSize(0));
         // no parameters
         itemKey = itemParser.parse("icmpping[]");
-        assertThat(itemKey.getParameters(), hasSize(0));
+        assertThat(itemKey.getParameters(), hasSize(1));
+        // one parameter
+        itemKey = itemParser.parse("icmpping[1]");
+        assertThat(itemKey.getParameters(), hasSize(1));
+        assertThat(itemKey.getParameters().get(0), equalTo(new Constant("1")));
         // multiple parameters
         itemKey = itemParser.parse("icmpping[,,200,,500]");
         assertThat(itemKey.getParameters(), hasSize(5));
         // single parameter containing /
         itemKey = itemParser.parse("vfs.file.contents[/sys/block/{#DEVNAME}/stat]");
         assertThat(itemKey.getParameters(), hasSize(1));
+        assertThat(itemKey.getParameters().get(0), equalTo(new Constant("/sys/block/{#DEVNAME}/stat")));
+        // single parameter containing [
+        itemKey = itemParser.parse("boo[a[]");
+        assertThat(itemKey.getParameters(), hasSize(1));
+        assertThat(itemKey.getParameters().get(0), equalTo(new Constant("a[")));
         // array handling
-        itemKey = itemParser.parse("key[[1,2,3],[4,5,6],]");
+        itemKey = itemParser.parse("key[[1,2],[4,5,6]]");
         assertThat(itemKey.getParameters(), hasSize(2));
-        // quote handling
-        itemKey = itemParser.parse("key[\"hey this comma,is quoted\"]");
-        assertThat(itemKey.getParameters(), hasSize(1));
-        // quote handling
-        itemKey = itemParser.parse("key[\"hey this quote\\\"is quoted\"]");
-        assertThat(itemKey.getParameters(), hasSize(1));
+        assertThat(itemKey.getParameters().get(0),
+                equalTo(new Array(Arrays.asList(new Constant("1"), new Constant("2")))));
+        assertThat(itemKey.getParameters().get(1),
+                equalTo(new Array(Arrays.asList(new Constant("4"), new Constant("5"), new Constant("6")))));
+//        // quote handling
+//        itemKey = itemParser.parse("key[\"hey this comma,is quoted\"]");
+//        assertThat(itemKey.getParameters(), hasSize(1));
+//        // quote handling
+//        itemKey = itemParser.parse("key[\"hey this quote\\\"is quoted\"]");
+//        assertThat(itemKey.getParameters(), hasSize(1));
     }
 
     /**

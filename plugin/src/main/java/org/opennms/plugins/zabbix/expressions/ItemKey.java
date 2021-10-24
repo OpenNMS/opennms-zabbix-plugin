@@ -6,9 +6,9 @@ import java.util.Objects;
 
 public class ItemKey {
     private final String name;
-    private final List<String> parameters;
+    private final List<Term> parameters;
 
-    public ItemKey(String name, List<String> parameters) {
+    public ItemKey(String name, List<Term> parameters) {
         this.name = Objects.requireNonNull(name);
         this.parameters = Collections.unmodifiableList(parameters);
     }
@@ -17,7 +17,7 @@ public class ItemKey {
         return name;
     }
 
-    public List<String> getParameters() {
+    public List<Term> getParameters() {
         return parameters;
     }
 }

@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import org.opennms.plugins.zabbix.expressions.ItemKey;
+import org.opennms.plugins.zabbix.expressions.Term;
+import org.opennms.plugins.zabbix.expressions.Constant;
+import org.opennms.plugins.zabbix.expressions.Array;
 
 public class ItemParser extends ItemParserBase {
 
@@ -27,15 +30,61 @@ SKIP : {
 }
 
 TOKEN : {
-  <NAME: (["0"-"9","a"-"z","A"-"Z","_","-","."])+ >
+    < NAME: (["0"-"9","a"-"z","A"-"Z","_","-","."])+ >
+  | < LSQUARE: "[" > : IN_KEY_PARM
+}
+
+<IN_KEY_PARM> TOKEN: {
+   < ARRAY_PARM_START: "[" > : IN_ARRAY
+   // "[" is be allowed in parameter values, provided they don't start
+ | < ANYTHING : (~["[", ",", "]"])(~[",", "]"])* >
+ | < COMMA: "," >
+ | < RSQUARE: "]" > : DEFAULT
+}
+
+<IN_ARRAY> TOKEN: {
+   < COMMA_ARRAY: "," >
+ | < ARRAY_PARM_END: "]" > : IN_KEY_PARM
+ | < ANYTHING_ARRAY : (~[",", "]"])+ >
+}
+
+Array Array() : {
+  List<Term> parameters = new LinkedList<>();
+  Token p;
+} {
+ <ARRAY_PARM_START>
+ // the first parameter
+ {p=null;}(p=<ANYTHING_ARRAY>{parameters.add(new Constant(p.image));})?{if(p==null){parameters.add(new Constant(""));}}
+ // subsequent parameters
+ (<COMMA_ARRAY> {p=null;}(p=<ANYTHING_ARRAY>{parameters.add(new Constant(p.image));})?{if(p==null){parameters.add(new Constant(""));}})*
+ <ARRAY_PARM_END>
+ { return new Array(parameters); }
+}
+
+Term KeyParameter() : {
+  Array a;
+  Token p;
+} {
+  // the parameter can be an array
+  (a=Array(){ return a; }) |
+  // some some other constant
+  (p=<ANYTHING>{ return new Constant(p.image); })
 }
 
 /** Main production. */
 ItemKey TopLevelItem() : {
- List<String> parameters = new LinkedList<>();
+ List<Term> parameters = new LinkedList<>();
+ Term p;
  Token name;
 }
 {
-  name=<NAME> ("[" "]")? <EOF>
+  name=<NAME> (
+    <LSQUARE>
+    // the first parameter
+    {p=null;}(p=KeyParameter(){parameters.add(p);})?{if(p==null){parameters.add(new Constant(""));}}
+    // subsequent parameters
+    (<COMMA> {p=null;}(p=KeyParameter(){parameters.add(p);})?{if(p==null){parameters.add(new Constant(""));}})*
+    <RSQUARE>
+  )? <EOF>
   { return new ItemKey(name.image, parameters); }
 }
