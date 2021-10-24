@@ -10,6 +10,7 @@ import org.opennms.plugins.zabbix.expressions.ItemKey;
 import org.opennms.plugins.zabbix.expressions.Term;
 import org.opennms.plugins.zabbix.expressions.Constant;
 import org.opennms.plugins.zabbix.expressions.Array;
+import org.opennms.plugins.zabbix.expressions.HostAndKey;
 
 public class ItemParser extends ItemParserBase {
 
@@ -32,6 +33,12 @@ SKIP : {
 TOKEN : {
     < NAME: (["0"-"9","a"-"z","A"-"Z","_","-","."])+ >
   | < LSQUARE: "[" > : IN_KEY_PARM
+  | < FORWARD_SLASH: "/" > : IN_HOST
+}
+
+<IN_HOST> TOKEN: {
+    < HOST: (["0"-"9","a"-"z","A"-"Z","_","-","."," "])+ >
+  | < HOST_KEY_SEPARATOR: "/" > : DEFAULT
 }
 
 <IN_KEY_PARM> TOKEN: {
@@ -83,8 +90,7 @@ Term KeyParameter() : {
   (p=<ANYTHING>{ return new Constant(p.image); })
 }
 
-/** Main production. */
-ItemKey TopLevelItem() : {
+ItemKey Item() : {
  List<Term> parameters = new LinkedList<>();
  Term p;
  Token name;
@@ -97,6 +103,28 @@ ItemKey TopLevelItem() : {
     // subsequent parameters
     (<COMMA> {p=null;}(p=KeyParameter(){parameters.add(p);})?{if(p==null){parameters.add(new Constant(""));}})*
     <RSQUARE>
-  )? <EOF>
+  )?
   { return new ItemKey(name.image, parameters); }
+}
+
+/** Main production. */
+ItemKey TopLevelItem() : {
+ ItemKey item;
+}
+{
+  item=Item() <EOF>
+  { return item; }
+}
+
+HostAndKey TopLevelHostAndKey() : {
+ Token host;
+ ItemKey item;
+}
+{
+  <FORWARD_SLASH>
+  host=<HOST>
+  <HOST_KEY_SEPARATOR>
+  item=Item()
+  <EOF>
+  { return new HostAndKey(host.image, item); }
 }

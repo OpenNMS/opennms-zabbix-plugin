@@ -7,7 +7,6 @@ import static org.hamcrest.Matchers.hasSize;
 
 import java.util.Arrays;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.opennms.plugins.zabbix.items.ItemParser;
 
@@ -58,26 +57,28 @@ public class ZabbixExpressionParserTest {
     }
 
     /**
-     * Alphanumerics, spaces, dots, dashes and underscores are allowed.
+     * /host/key
+     *  host: Alphanumerics, spaces, dots, dashes and underscores are allowed.
      */
     @Test
-    @Ignore
-    public void canParseHostAndKey() throws org.opennms.plugins.zabbix.expressions.ParseException {
+    public void canParseHostAndKey() throws org.opennms.plugins.zabbix.items.ParseException {
+        ItemParser itemParser = new ItemParser();
+
         // simple key
-        HostAndKey hostAndKey = parser.parseHostAndKey("/a/b");
+        HostAndKey hostAndKey = itemParser.parseHostAndKey("/a/b");
         assertThat(hostAndKey.getHost(), equalTo("a"));
         assertThat(hostAndKey.getKey().getName(), equalTo("b"));
 
         // complex key
-        hostAndKey = parser.parseHostAndKey("/a1.b2.d-9.c_7/b[1]");
+        hostAndKey = itemParser.parseHostAndKey("/a1.b2.d-9.c_7/b[1]");
         assertThat(hostAndKey.getHost(), equalTo("a1.b2.d-9.c_7"));
         assertThat(hostAndKey.getKey().getName(), equalTo("b"));
 
         // key with /
-        hostAndKey = parser.parseHostAndKey("/host/vfs.fs.size[/,free]");
+        hostAndKey = itemParser.parseHostAndKey("/host/vfs.fs.size[/,free]");
         assertThat(hostAndKey.getHost(), equalTo("host"));
         assertThat(hostAndKey.getKey().getName(), equalTo("vfs.fs.size"));
-        assertThat(hostAndKey.getKey().getParameters().get(0), equalTo("/"));
+        assertThat(hostAndKey.getKey().getParameters().get(0), equalTo(new Constant("/")));
     }
 
     @Test
