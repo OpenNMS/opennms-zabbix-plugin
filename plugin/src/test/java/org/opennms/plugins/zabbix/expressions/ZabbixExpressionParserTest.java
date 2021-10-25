@@ -127,13 +127,13 @@ public class ZabbixExpressionParserTest {
         fn = (FunctionCall)rhsExpression.getLhs();
         assertThat(fn.getName(), equalTo("min"));
 
-        expression = parser.parse("max(1,2)>5 or max(2,3)>4");
-        expression = parser.parse("max(1,2)>5 or (max(2,3)>4 and max(1,2)<4)");
-        expression = parser.parse("timeleft(/host/vfs.fs.size[a,free],1h,0)<1h and ({TRIGGER.VALUE}=0 and timeleft(/host/vfs.fs.size[a,free],1h,0)<>-1 or {TRIGGER.VALUE}=1)");
-        expression = parser.parse("last(/Linux filesystems by Zabbix agent/vfs.fs.size[{#FSNAME},total])-last(/Linux filesystems by Zabbix agent/vfs.fs.size[{#FSNAME},used])");
-        expression = parser.parse("timeleft(/Linux filesystems by Zabbix agent/vfs.fs.size[{#FSNAME},pused],1h,100)<1d");
-        expression = parser.parse("(max(1,2)-min(2,3))<0");
-        //expression = parser.parse("{$IF.UTIL.MAX:\"{#IFNAME}\"}/100");
+        parser.parse("max(1,2)>5 or max(2,3)>4");
+        parser.parse("max(1,2)>5 or (max(2,3)>4 and max(1,2)<4)");
+        parser.parse("timeleft(/host/vfs.fs.size[a,free],1h,0)<1h and ({TRIGGER.VALUE}=0 and timeleft(/host/vfs.fs.size[a,free],1h,0)<>-1 or {TRIGGER.VALUE}=1)");
+        parser.parse("last(/Linux filesystems by Zabbix agent/vfs.fs.size[{#FSNAME},total])-last(/Linux filesystems by Zabbix agent/vfs.fs.size[{#FSNAME},used])");
+        parser.parse("timeleft(/Linux filesystems by Zabbix agent/vfs.fs.size[{#FSNAME},pused],1h,100)<1d");
+        parser.parse("(max(1,2)-min(2,3))<0");
+        //parser.parse("(avg(/Windows network by Zabbix agent/net.if.in[\"{#IFGUID}\"],15m)>({$IF.UTIL.MAX:\"{#IFNAME}\"}/100)*last(/Windows network by Zabbix agent/net.if.speed[\"{#IFGUID}\"])");
     }
 
     @Test
