@@ -11,12 +11,34 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
+import org.opennms.plugins.zabbix.utils.MessageCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.pool.AbstractChannelPoolHandler;
+import io.netty.channel.pool.ChannelPool;
+import io.netty.channel.pool.FixedChannelPool;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.util.Attribute;
+import io.netty.util.AttributeKey;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.FutureListener;
 
 /**
  * TODO: Better handling of unsupported keys i.e. ZBX_NOTSUPPORTEDUnsupported item key. or ZBX_NOTSUPPORTEDToo many parameters.
@@ -26,25 +48,43 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class ZabbixAgentClient implements Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(ZabbixAgentClient.class);
     public static final int DEFAULT_PORT = 10050;
+    private static AttributeKey<CompletableFuture<String>> FUTURE = AttributeKey.valueOf("zabbix_future");
+    private ChannelPool channelPool;
+    private EventLoopGroup group;
 
     private static int HEADER_LENGTH = 13;
 
     private final InetAddress address;
     private final int port;
 
-    private SocketChannel channel;
+    //private SocketChannel channel;
 
     public ZabbixAgentClient(InetAddress address, int port) {
         this.address = Objects.requireNonNull(address);
         this.port = port;
     }
 
-    private SocketChannel openConnection(InetAddress address, int port) throws IOException {
-        return SocketChannel.open(new InetSocketAddress(address, port));
+    private void openConnection(InetAddress address, int port) throws IOException {
+        group = new NioEventLoopGroup(10); //TODO changed to configurable
+        Bootstrap bootstrap = new Bootstrap();
+        bootstrap.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+                .option(ChannelOption.SO_KEEPALIVE, true)
+                .group(group)
+                .channel(NioSocketChannel.class)
+                .remoteAddress("localhost", 10050);
+
+        channelPool = new FixedChannelPool(bootstrap, new AbstractChannelPoolHandler() {
+            @Override
+            public void channelCreated(Channel channel) throws Exception {
+                ChannelPipeline pipeline = channel.pipeline();
+                //pipeline.addLast("framer", new DelimiterBasedFrameDecoder(8192, Delimiters.lineDelimiter()));
+                pipeline.addLast("clientHandler", new PooledClientHandler(channelPool));
+            }
+        }, 20); //TODO change to configurable
     }
 
-    public List<Map<String, Object>> discoverData(String key) throws IOException  {
-        final String json = retrieveData(key);
+    public List<Map<String, Object>> discoverData(String key) throws IOException, ExecutionException, InterruptedException {
+        final String json = retrieveData(key).get();
         ObjectMapper mapper = new ObjectMapper();
         // FIXME: Not sure if all discovery rule keys follow the same format
         try {
@@ -58,54 +98,64 @@ public class ZabbixAgentClient implements Closeable {
         }
     }
 
-    public String retrieveData(String key) throws IOException, ZabbixNotSupportedException {
-        try(final SocketChannel channel = openConnection(address, port)) {
-            ByteBuffer requestBuffer = prepareByteBufferToSend(key);
-            channel.write(requestBuffer);
-            ByteBuffer buffer = ByteBuffer.allocate(512);
-            StringBuilder sb = new StringBuilder();
-            while (channel.read(buffer) > 0) {
-                buffer.flip();
-                while(buffer.hasRemaining()) {
-                    sb.append((char) buffer.get());
-                }
-                buffer.clear();
-            }
-            // FIXME: Validate header and data length when processing response too
-            String response = sb.length() > HEADER_LENGTH ? sb.substring(HEADER_LENGTH) : sb.toString();
-            if (response.startsWith("ZBX_NOTSUPPORTED")) {
-                LOG.trace("{} <> {}", key, response);
-                throw new ZabbixNotSupportedException(String.format("Host: %s, Port: %d, Key: '%s': %s",
-                        address.getHostAddress(), port, key, response));
-            }
-            LOG.trace("{} = {}", key, response);
-            return response;
+    public CompletableFuture<String> retrieveData(String key) throws IOException, ZabbixNotSupportedException {
+        if (channelPool == null) {
+            openConnection(address, port);
         }
-    }
+        ByteBuf buf = MessageCodec.encode(key);
+        CompletableFuture<String> future = new CompletableFuture<>();
+        Future<Channel> channelFuture = channelPool.acquire();
+        channelFuture.addListener(new FutureListener<Channel>() {
+            @Override
+            public void operationComplete(Future<Channel> f) throws Exception {
+                if (f.isSuccess()) {
+                    Channel channel = f.getNow();
+                    channel.attr(FUTURE).set(future);
+                    channel.writeAndFlush(buf, channel.voidPromise());
+                }
+            }
+        });
 
-    private static byte[] prepareBytes(String key) {
-        byte[] data = key.getBytes(StandardCharsets.UTF_8);
-        byte[] header = new byte[] {
-                'Z', 'B', 'X', 'D', '\1',
-                (byte)(data.length & 0xFF),
-                (byte)((data.length >> 8) & 0xFF),
-                (byte)((data.length >> 16) & 0xFF),
-                (byte)((data.length >> 24) & 0xFF),
-                '\0', '\0', '\0', '\0'};        byte[] packet = new byte[header.length + data.length];
-        System.arraycopy(header, 0, packet, 0, header.length);
-        System.arraycopy(data, 0, packet, header.length, data.length);
-        return packet;
-    }
-
-    private static ByteBuffer prepareByteBufferToSend(String key) {
-        return ByteBuffer.wrap(prepareBytes(key));
+        return future;
     }
 
     @Override
-    public void close() throws IOException {
-        if (channel != null) {
-            channel.close();
-            channel = null;
+    public void close() {
+        if (group != null) {
+            group.shutdownGracefully();
+        }
+    }
+
+    private static class PooledClientHandler extends SimpleChannelInboundHandler {
+
+        private ChannelPool pool;
+
+        public PooledClientHandler(ChannelPool pool) {
+            this.pool = pool;
+        }
+
+        @Override
+        protected void channelRead0(ChannelHandlerContext ctx, Object in) throws Exception {
+            Attribute<CompletableFuture<String>> futureAttribute = ctx.channel().attr(FUTURE);
+            CompletableFuture<String> future = futureAttribute.getAndSet(new CompletableFuture<>());
+            ByteBuf data = (ByteBuf) in;
+            String msg = MessageCodec.decode(data);
+            try {
+                pool.release(ctx.channel(), ctx.channel().voidPromise());
+            } catch (IllegalArgumentException e) {
+                System.out.println("error");
+            }
+            future.complete(msg);
+        }
+
+        @Override
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+            Attribute<CompletableFuture<String>> futureAttribute = ctx.channel().attr(FUTURE);
+            CompletableFuture<String> future = futureAttribute.getAndSet(new CompletableFuture<>());
+            cause.printStackTrace();
+            pool.release(ctx.channel());
+            ctx.close();
+            future.completeExceptionally(cause);
         }
     }
 

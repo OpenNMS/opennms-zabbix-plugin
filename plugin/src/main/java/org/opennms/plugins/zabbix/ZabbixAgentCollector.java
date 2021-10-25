@@ -63,7 +63,7 @@ public class ZabbixAgentCollector implements ServiceCollector {
                 LOG.debug("Processing template with name: {}", template.getName());
                 for (Item item : template.getItems()) {
                     try {
-                        String value = client.retrieveData(item.getKey());
+                        String value = client.retrieveData(item.getKey()).get();
                         metricMapper.addValueToResource(item, value, nodeResourceBuilder);
                     } catch (ZabbixNotSupportedException e) {
                         // pass
@@ -90,7 +90,7 @@ public class ZabbixAgentCollector implements ServiceCollector {
                             for (Item item : rule.getItemPrototypes()) {
                                 final String effectiveKey = ZabbixMacroSupport.evaluateMacro(item.getKey(), entry);
                                 try {
-                                    String value = client.retrieveData(effectiveKey);
+                                    String value = client.retrieveData(effectiveKey).get();
                                     metricMapper.addValueToResource(rule, item, value, resourceBuilder);
                                     didAddAttribute = true;
                                 } catch (ZabbixNotSupportedException e) {
