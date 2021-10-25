@@ -42,10 +42,9 @@ TOKEN : {
 | <MORE_THAN_OR_EQUAL: ">=" >
 | <EQUAL: "=" >
 | <NOT_EQUAL: "<>" >
-| <NAME: (["0"-"9","a"-"z","A"-"Z","_","-","."])+ >
+// FIXME: Should also include "-", but removed since this is an operator // ,"-"
+| <NAME: (["0"-"9","a"-"z","A"-"Z","_","."])+ >
 | <LSQUARE: "[" > : IN_KEY_PARM
-//| <FUNCTION_CALL: ["a"-"z"](["a"-"z","0"-"9"])+>
-//| <HOST_AND_KEY: "/" (["a"-"z","A"-"Z","0"-"9"," "])* "/" (["a"-"z","A"-"Z","0"-"9","[","{","#","}","]",".","/"])+ >
 | <MACRO: "{" (["a"-"z","A"-"Z",".","0"-"9",",","[","{","#","}","]","\"",":","$"])+ "}"  >
 | <NUMBER: (["-"])?(["0"-"9","."])+  >
 }

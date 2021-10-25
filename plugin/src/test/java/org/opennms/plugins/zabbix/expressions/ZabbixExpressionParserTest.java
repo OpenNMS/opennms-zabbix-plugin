@@ -3,11 +3,17 @@ package org.opennms.plugins.zabbix.expressions;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
+import org.junit.Ignore;
 import org.junit.Test;
+import org.opennms.plugins.zabbix.ZabbixTemplateHandler;
+import org.opennms.plugins.zabbix.model.Trigger;
 
 public class ZabbixExpressionParserTest {
     private ExpressionParser parser = new ExpressionParser();
@@ -124,6 +130,26 @@ public class ZabbixExpressionParserTest {
         expression = parser.parse("max(1,2)>5 or max(2,3)>4");
         expression = parser.parse("max(1,2)>5 or (max(2,3)>4 and max(1,2)<4)");
         expression = parser.parse("timeleft(/host/vfs.fs.size[a,free],1h,0)<1h and ({TRIGGER.VALUE}=0 and timeleft(/host/vfs.fs.size[a,free],1h,0)<>-1 or {TRIGGER.VALUE}=1)");
+        expression = parser.parse("last(/Linux filesystems by Zabbix agent/vfs.fs.size[{#FSNAME},total])-last(/Linux filesystems by Zabbix agent/vfs.fs.size[{#FSNAME},used])");
+        expression = parser.parse("timeleft(/Linux filesystems by Zabbix agent/vfs.fs.size[{#FSNAME},pused],1h,100)<1d");
+        //expression = parser.parse("(max(1,2)-min(2,3))<0");
+    }
+
+    @Ignore
+    @Test
+    public void canParseAllExpressionsFromTemplates() throws ParseException {
+        ZabbixTemplateHandler zabbixTemplateHandler = new ZabbixTemplateHandler();
+        List<String> triggerExpressions = zabbixTemplateHandler.getTemplates().stream()
+                .flatMap(t -> t.getDiscoveryRules().stream())
+                .flatMap(r -> r.getTriggerPrototypes().stream())
+                .map(Trigger::getExpression)
+                .collect(Collectors.toList());
+        // make sure we have a few
+        assertThat(triggerExpressions, hasSize(greaterThanOrEqualTo(4)));
+        for (String triggerExpression : triggerExpressions) {
+            System.out.println("Parsing trigger expression: " + triggerExpression);
+            parser.parse(triggerExpression);
+        }
     }
 
 }
