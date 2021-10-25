@@ -132,11 +132,12 @@ public class ZabbixExpressionParserTest {
         expression = parser.parse("timeleft(/host/vfs.fs.size[a,free],1h,0)<1h and ({TRIGGER.VALUE}=0 and timeleft(/host/vfs.fs.size[a,free],1h,0)<>-1 or {TRIGGER.VALUE}=1)");
         expression = parser.parse("last(/Linux filesystems by Zabbix agent/vfs.fs.size[{#FSNAME},total])-last(/Linux filesystems by Zabbix agent/vfs.fs.size[{#FSNAME},used])");
         expression = parser.parse("timeleft(/Linux filesystems by Zabbix agent/vfs.fs.size[{#FSNAME},pused],1h,100)<1d");
-        //expression = parser.parse("(max(1,2)-min(2,3))<0");
+        expression = parser.parse("(max(1,2)-min(2,3))<0");
+        //expression = parser.parse("{$IF.UTIL.MAX:\"{#IFNAME}\"}/100");
     }
 
-    @Ignore
     @Test
+    @Ignore
     public void canParseAllExpressionsFromTemplates() throws ParseException {
         ZabbixTemplateHandler zabbixTemplateHandler = new ZabbixTemplateHandler();
         List<String> triggerExpressions = zabbixTemplateHandler.getTemplates().stream()

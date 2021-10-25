@@ -177,12 +177,14 @@ Expression CompoundExpression() : {
 
 Expression Clause() : {
   Expression e=null;
+  Constant c=null;
   Token fieldToken=null;
 }
 {
   (
-   LOOKAHEAD(2)
+   LOOKAHEAD(3)
    e=Expression()
+   | c=Constant(){e=new Expression(c);}
    | <LPAREN> e=CompoundExpression() <RPAREN>
   )
   { return e; }
