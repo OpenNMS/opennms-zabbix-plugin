@@ -3,7 +3,7 @@ package org.opennms.plugins.zabbix.expressions;
 import java.util.Objects;
 import java.util.StringJoiner;
 
-public class HostAndKey {
+public class HostAndKey implements Term {
     private final String host;
     private final ItemKey key;
 

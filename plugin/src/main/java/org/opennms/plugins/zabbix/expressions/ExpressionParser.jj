@@ -28,13 +28,13 @@ SKIP : {
 TOKEN : {
   <LPAREN: "(" >
 | <RPAREN: ")" >
-| <OPERATOR: (<MINUS>|<MULTIPLICATION>|<DIVISION>|<PLUS>|<AND>|<OR>|<LESS_THAN>|<LESS_THAN_OR_EQUAL>|<MORE_THAN>|<MORE_THAN_OR_EQUAL>|<EQUAL>|<NOT_EQUAL>)>
+| <FORWARD_SLASH: "/" > : IN_HOST
+| <OPERATOR: (<MINUS>|<MULTIPLICATION>|<FORWARD_SLASH>|<PLUS>|<AND>|<OR>|<LESS_THAN>|<LESS_THAN_OR_EQUAL>|<MORE_THAN>|<MORE_THAN_OR_EQUAL>|<EQUAL>|<NOT_EQUAL>)>
 | <AND: ("AND" | "and" | "&&") >
 | <OR: ("OR" | "or" | "||") >
 | <MINUS: "-" >
 | <NOT: "not" >
 | <MULTIPLICATION: "*" >
-| <DIVISION: "/" >
 | <PLUS: "+" >
 | <LESS_THAN: "<" >
 | <LESS_THAN_OR_EQUAL: "<=" >
@@ -42,22 +42,23 @@ TOKEN : {
 | <MORE_THAN_OR_EQUAL: ">=" >
 | <EQUAL: "=" >
 | <NOT_EQUAL: "<>" >
-| <FUNCTION_CALL: ["a"-"z"](["a"-"z","0"-"9"])+>
-| <HOST_AND_KEY: "/" (["a"-"z","A"-"Z","0"-"9"," "])* "/" (["a"-"z","A"-"Z","0"-"9","[","{","#","}","]",".","/"])+ >
+| <NAME: (["0"-"9","a"-"z","A"-"Z","_","-","."])+ >
+| <LSQUARE: "[" > : IN_KEY_PARM
+//| <FUNCTION_CALL: ["a"-"z"](["a"-"z","0"-"9"])+>
+//| <HOST_AND_KEY: "/" (["a"-"z","A"-"Z","0"-"9"," "])* "/" (["a"-"z","A"-"Z","0"-"9","[","{","#","}","]",".","/"])+ >
 | <MACRO: "{" (["a"-"z","A"-"Z",".","0"-"9",",","[","{","#","}","]","\"",":","$"])+ "}"  >
-| <NUMBER_WITH_UNIT: <NUMBER>(["a"-"z"])+  >
 | <NUMBER: (["-"])?(["0"-"9","."])+  >
 }
 
-<IN_ITEM> TOKEN : {
-    < NAME: (["0"-"9","a"-"z","A"-"Z","_","-","."])+ >
-  | < LSQUARE: "[" > : IN_KEY_PARM
-  | < FORWARD_SLASH: "/" > : IN_HOST
-}
+//<IN_ITEM> TOKEN : {
+//    < NAME: (["0"-"9","a"-"z","A"-"Z","_","-","."])+ >
+//  | < LSQUARE: "[" > : IN_KEY_PARM
+//  | < FORWARD_SLASH: "/" > : IN_HOST
+//}
 
 <IN_HOST> TOKEN: {
     < HOST: (["0"-"9","a"-"z","A"-"Z","_","-","."," "])+ >
-  | < HOST_KEY_SEPARATOR: "/" > : IN_ITEM
+  | < HOST_KEY_SEPARATOR: "/" > : DEFAULT
 }
 
 <IN_KEY_PARM> TOKEN: {
@@ -74,7 +75,7 @@ TOKEN : {
    // [ and " are be allowed in parameter values, provided they don't start
  | < ANYTHING : (~["[", ",", "]", "\""])(~[",", "]"])* >
  | < COMMA: "," >
- | < RSQUARE: "]" > : IN_ITEM
+ | < RSQUARE: "]" > : DEFAULT
 }
 
 <IN_ARRAY> TOKEN: {
@@ -87,41 +88,40 @@ ItemKey TopLevelItem() : {
  ItemKey item;
 }
 {
-  { token_source.SwitchTo(IN_ITEM); }
+ // { token_source.SwitchTo(IN_ITEM); }
   item=Item() <EOF>
   { return item; }
 }
 
 HostAndKey TopLevelHostAndKey() : {
- Token host;
- ItemKey item;
+ HostAndKey host;
 }
 {
-  { token_source.SwitchTo(IN_ITEM); }
-  <FORWARD_SLASH>
-  host=<HOST>
-  <HOST_KEY_SEPARATOR>
-  item=Item()
+  //{ token_source.SwitchTo(IN_ITEM); }
+  host=HostAndKey()
   <EOF>
-  { return new HostAndKey(host.image, item); }
+  { return host; }
 }
-
 
 /** Main production. */
 Expression TopLevelExpression() : {
  Expression e;
 }
 {
+  //e=Expression() <EOF>
   e=CompoundExpression() <EOF>
   { return e; }
 }
 
 Term FunctionParameter() : {
-   Token body;
+   ItemKey i;
+   HostAndKey h;
    FunctionCall f;
+   Constant c;
 }
 {
-  f=FunctionCall(){return f;}|body=<HOST_AND_KEY>{return new Constant(body.image);}|body=<NUMBER>{return new Constant(body.image);}|body=<NUMBER_WITH_UNIT>{return new Constant(body.image);}
+  LOOKAHEAD(2)
+  f=FunctionCall(){return f;}|h=HostAndKey() {return h;}|i=Item() {return i;}
 }
 
 FunctionCall FunctionCall() : {
@@ -130,7 +130,7 @@ FunctionCall FunctionCall() : {
   Token function = null;
 }
 {
-  function=<FUNCTION_CALL>
+  function=<NAME>
   <LPAREN>
   p=FunctionParameter(){parameters.add(p);} ("," p=FunctionParameter(){parameters.add(p);})*
   <RPAREN>
@@ -141,7 +141,7 @@ Constant Constant() : {
   Token c;
 }
 {
-  (c=<NUMBER>|c=<MACRO>)
+  (c=<NUMBER>|c=<MACRO>|c=<NAME>)
   { return new Constant(c.image); }
 }
 
@@ -150,9 +150,15 @@ Expression Expression() : {
   Token op;
 }
 {
-  (lhs=Constant()|lhs=FunctionCall())
+  (
+    LOOKAHEAD(2)
+    lhs=FunctionCall()|lhs=Constant()
+  )
   op=<OPERATOR>
-  (rhs=Constant()|rhs=FunctionCall())
+  (
+    LOOKAHEAD(2)
+    rhs=FunctionCall()|rhs=Constant()
+  )
   { return new Expression(lhs, op.image, rhs); }
 }
 
@@ -225,4 +231,16 @@ ItemKey Item() : {
     <RSQUARE>
   )?
   { return new ItemKey(name.image, parameters); }
+}
+
+HostAndKey HostAndKey() : {
+ Token host;
+ ItemKey item;
+}
+{
+  <FORWARD_SLASH>
+  host=<HOST>
+  <HOST_KEY_SEPARATOR>
+  item=Item()
+  { return new HostAndKey(host.image, item); }
 }

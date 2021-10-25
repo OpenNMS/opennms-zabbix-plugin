@@ -81,7 +81,7 @@ public class ZabbixExpressionParserTest {
         Expression expression = parser.parse("max(123,1) + 5");
         FunctionCall fn = (FunctionCall)expression.getLhs();
         assertThat(fn.getName(), equalTo("max"));
-        assertThat(fn.getParameters(), contains(new Constant("123"), new Constant("1")));
+        assertThat(fn.getParameters(), contains(new ItemKey("123"), new ItemKey("1")));
         assertThat(expression.getOperator(), equalTo("+"));
         Constant constant = (Constant)expression.getRhs();
         assertThat(constant.getValue(), equalTo("5"));
@@ -90,8 +90,8 @@ public class ZabbixExpressionParserTest {
         fn = (FunctionCall)expression.getLhs();
         assertThat(fn.getName(), equalTo("min"));
         assertThat(fn.getParameters(), contains(
-                new Constant("/Linux block devices by Zabbix agent/vfs.dev.read.await[{#DEVNAME}]"),
-                new Constant("15m")));
+                new HostAndKey("Linux block devices by Zabbix agent", new ItemKey("vfs.dev.read.await", "{#DEVNAME}")),
+                new ItemKey("15m")));
         assertThat(expression.getOperator(), equalTo(">"));
         constant = (Constant)expression.getRhs();
         assertThat(constant.getValue(), equalTo("{$VFS.DEV.READ.AWAIT.WARN:\"{#DEVNAME}\"}"));
@@ -100,8 +100,8 @@ public class ZabbixExpressionParserTest {
         fn = (FunctionCall)expression.getLhs();
         assertThat(fn.getName(), equalTo("min"));
         assertThat(fn.getParameters(), contains(
-                new Constant("/Linux block devices by Zabbix agent/vfs.dev.read.await[{#DEVNAME}]"),
-                new Constant("15m")));
+                new HostAndKey("Linux block devices by Zabbix agent", new ItemKey("vfs.dev.read.await", "{#DEVNAME}")),
+                new ItemKey("15m")));
         assertThat(expression.getOperator(), equalTo(">"));
         constant = (Constant)expression.getRhs();
         assertThat(constant.getValue(), equalTo("{$VFS.DEV.READ.AWAIT.WARN:\"{#DEVNAME}\"}"));
@@ -123,8 +123,7 @@ public class ZabbixExpressionParserTest {
 
         expression = parser.parse("max(1,2)>5 or max(2,3)>4");
         expression = parser.parse("max(1,2)>5 or (max(2,3)>4 and max(1,2)<4)");
-        //expression = parser.parse("timeleft(/host/vfs.fs.size[/,free],1h,0)");
-       // expression = parser.parse("timeleft(/host/vfs.fs.size[a,free],1h,0)<1h and ({TRIGGER.VALUE}=0 and timeleft(/host/vfs.fs.size[a,free],1h,0)<>-1 or {TRIGGER.VALUE}=1)");
+        expression = parser.parse("timeleft(/host/vfs.fs.size[a,free],1h,0)<1h and ({TRIGGER.VALUE}=0 and timeleft(/host/vfs.fs.size[a,free],1h,0)<>-1 or {TRIGGER.VALUE}=1)");
     }
 
 }
