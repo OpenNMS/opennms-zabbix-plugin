@@ -1,0 +1,243 @@
+PARSER_BEGIN(ExpressionParser)
+
+package org.opennms.plugins.zabbix.expressions;
+
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+
+public class ExpressionParser extends ExpressionParserBase {
+
+    public ExpressionParser() {
+        this(new StringReader(""));
+    }
+}
+
+PARSER_END(ExpressionParser)
+
+// Skip whitespace characters
+SKIP : {
+  " "
+| "\t"
+| "\r"
+| "\n"
+| "\r\n"
+}
+
+TOKEN : {
+  <LPAREN: "(" >
+| <RPAREN: ")" >
+| <OPERATOR: ( "-"|"*"|"/"|"+"|<AND>|<OR>|<LESS_THAN>|<LESS_THAN_OR_EQUAL>|<MORE_THAN>|<MORE_THAN_OR_EQUAL>|<EQUAL>|<NOT_EQUAL>)>
+| <AND: ("AND" | "and" | "&&") >
+| <OR: ("OR" | "or" | "||") >
+| <NOT: "not" >
+| <LESS_THAN: "<" >
+| <LESS_THAN_OR_EQUAL: "<=" >
+| <MORE_THAN: ">" >
+| <MORE_THAN_OR_EQUAL: ">=" >
+| <EQUAL: "=" >
+| <NOT_EQUAL: "<>" >
+// does not start with "." or "-"
+| <NAME: (["0"-"9","a"-"z","A"-"Z","_"])+(["0"-"9","a"-"z","A"-"Z","_","-","."])* >
+| <NUMBER: (["-"])?(["0"-"9","."])+  >
+| <FUNCTION_CALL: (["a"-"z"])+<LPAREN> > : IN_FUNCTION
+| <MACRO: "{" (["a"-"z","A"-"Z",".","0"-"9",",","[","{","#","}","]","\"",":","$"])+ "}" >
+}
+
+<IN_FUNCTION> TOKEN : {
+    < ITEM_NAME: (["0"-"9","a"-"z","A"-"Z","_","-","."])+ >
+  | < LSQUARE: "[" > : IN_KEY_PARM
+  | < FORWARD_SLASH: "/" > : IN_HOST
+  | < FN_COMMA: "," >
+  | < RPAREN_FUN: ")" >  : DEFAULT
+}
+
+<IN_HOST> TOKEN: {
+    < HOST: (["0"-"9","a"-"z","A"-"Z","_","-","."," "])+ >
+  | < HOST_KEY_SEPARATOR: "/" > : IN_FUNCTION
+}
+
+<IN_KEY_PARM> TOKEN: {
+   < ARRAY_PARM_START: "[" > : IN_ARRAY
+ | <QUOTED:
+       "\""
+       (
+           "\\" ~[]    //any escaped character
+           |           //or
+           ~["\""]      //any non-quote character
+       )*
+       "\""
+   >
+   // [ and " are be allowed in parameter values, provided they don't start
+ | < ANYTHING : (~["[", ",", "]", "\""])(~[",", "]"])* >
+ | < COMMA: "," >
+ | < RSQUARE: "]" > : IN_FUNCTION
+}
+
+<IN_ARRAY> TOKEN: {
+   < COMMA_ARRAY: "," >
+ | < ARRAY_PARM_END: "]" > : IN_KEY_PARM
+ | < ANYTHING_ARRAY : (~[",", "]"])+ >
+}
+
+ItemKey TopLevelItem() : {
+ ItemKey item;
+}
+{
+  { token_source.SwitchTo(IN_FUNCTION); }
+  item=Item() <EOF>
+  { return item; }
+}
+
+HostAndKey TopLevelHostAndKey() : {
+ HostAndKey host;
+}
+{
+  { token_source.SwitchTo(IN_FUNCTION); }
+  host=HostAndKey()
+  <EOF>
+  { return host; }
+}
+
+/** Main production. */
+Expression TopLevelExpression() : {
+ Expression e;
+}
+{
+  e=CompoundExpression() <EOF>
+  { return e; }
+}
+
+Term FunctionParameter() : {
+   ItemKey i;
+   HostAndKey h;
+   FunctionCall f;
+   Constant c;
+}
+{
+  LOOKAHEAD(2)
+  f=FunctionCall(){return f;}|h=HostAndKey() {return h;}|i=Item() {return i;}
+}
+
+FunctionCall FunctionCall() : {
+  List<Term> parameters = new ArrayList<>();
+  Term p;
+  Token function = null;
+}
+{
+  function=<FUNCTION_CALL>
+  p=FunctionParameter(){parameters.add(p);} (<FN_COMMA> p=FunctionParameter(){parameters.add(p);})*
+  <RPAREN_FUN>
+  { return new FunctionCall(function.image.substring(0, function.image.length()-1), parameters); }
+}
+
+Constant Constant() : {
+  Token c;
+}
+{
+  (c=<NUMBER>|c=<NAME>|c=<MACRO>)
+  { return new Constant(c.image); }
+}
+
+Expression Expression() : {
+  Term lhs,rhs;
+  Token op;
+}
+{
+  (
+    LOOKAHEAD(2)
+    lhs=FunctionCall()|lhs=Constant()
+  )
+  op=<OPERATOR>
+  (
+    LOOKAHEAD(2)
+    rhs=Constant()|rhs=FunctionCall()
+  )
+  { return new Expression(lhs, op.image, rhs); }
+}
+
+Expression CompoundExpression() : {
+  Expression lhs=null,e=null;
+  Token op;
+}
+{
+  lhs=Clause()
+  (
+    op=<OPERATOR>
+    e=Clause()
+    {lhs=new Expression(lhs,op.image,e);}
+  )*
+  { return lhs; }
+}
+
+Expression Clause() : {
+  Expression e=null;
+  Constant c=null;
+  Token fieldToken=null;
+}
+{
+  (
+   LOOKAHEAD(3)
+   e=Expression()
+   | c=Constant(){e=new Expression(c);}
+   | <LPAREN> e=CompoundExpression() <RPAREN>
+  )
+  { return e; }
+}
+
+
+Array Array() : {
+  List<Term> parameters = new LinkedList<>();
+  Token p;
+} {
+ <ARRAY_PARM_START>
+ // the first parameter
+ {p=null;}(p=<ANYTHING_ARRAY>{parameters.add(new Constant(p.image));})?{if(p==null){parameters.add(new Constant(""));}}
+ // subsequent parameters
+ (<COMMA_ARRAY> {p=null;}(p=<ANYTHING_ARRAY>{parameters.add(new Constant(p.image));})?{if(p==null){parameters.add(new Constant(""));}})*
+ <ARRAY_PARM_END>
+ { return new Array(parameters); }
+}
+
+Term KeyParameter() : {
+  Array a;
+  Constant c;
+  Token p;
+} {
+  // the parameter can be an array
+  (a=Array(){ return a; }) |
+  // a quoted string
+  (p=<QUOTED>{ return new Constant(p.image); }) |
+  // some some other constant
+  (p=<ANYTHING>{ return new Constant(p.image); })
+}
+
+ItemKey Item() : {
+ List<Term> parameters = new LinkedList<>();
+ Term p;
+ Token name;
+}
+{
+  name=<ITEM_NAME> (
+    <LSQUARE>
+    // the first parameter
+    {p=null;}(p=KeyParameter(){parameters.add(p);})?{if(p==null){parameters.add(new Constant(""));}}
+    // subsequent parameters
+    (<COMMA> {p=null;}(p=KeyParameter(){parameters.add(p);})?{if(p==null){parameters.add(new Constant(""));}})*
+    <RSQUARE>
+  )?
+  { return new ItemKey(name.image, parameters); }
+}
+
+HostAndKey HostAndKey() : {
+ Token host;
+ ItemKey item;
+}
+{
+  <FORWARD_SLASH>
+  host=<HOST>
+  <HOST_KEY_SEPARATOR>
+  item=Item()
+  { return new HostAndKey(host.image, item); }
+}

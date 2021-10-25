@@ -38,7 +38,30 @@
                         <configuration>
                             <sources>
                                 <source>${basedir}/target/generated-sources</source>
+                                <source>${project.build.directory}/generated-sources/javacc</source>
                             </sources>
+
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>com.helger.maven</groupId>
+                <artifactId>ph-javacc-maven-plugin</artifactId>
+                <version>4.1.4</version>
+                <executions>
+                    <execution>
+                        <id>expressions</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>javacc</goal>
+                        </goals>
+                        <configuration>
+                            <jdkVersion>1.8</jdkVersion>
+                            <packageName>org.opennms.plugins.zabbix.expressions</packageName>
+                            <sourceDirectory>src/main/java/org/opennms/plugins/zabbix/expressions</sourceDirectory>
+                            <outputDirectory>${project.build.directory}/generated-sources/javacc</outputDirectory>
                         </configuration>
                     </execution>
                 </executions>
