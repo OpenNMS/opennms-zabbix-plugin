@@ -10,7 +10,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.opennms.plugins.zabbix.ZabbixTemplateHandler;
 import org.opennms.plugins.zabbix.model.Trigger;
@@ -136,11 +135,10 @@ public class ZabbixExpressionParserTest {
         parser.parse("avg(/Windows network by Zabbix agent/net.if.in[\"{#IFGUID}\"],15m)>({$IF.UTIL.MAX:\"{#IFNAME}\"}/100)*last(/Windows network by Zabbix agent/net.if.speed[\"{#IFGUID}\"])");
         parser.parse("max(/Zabbix agent/zabbix[host,agent,available],{$AGENT.TIMEOUT})=0");
         parser.parse("nodata(/Zabbix agent active/agent.ping,{$AGENT.NODATA_TIMEOUT})=1");
-        //parser.parse("length(last(/Linux generic by Zabbix agent/system.hostname))>0");
+        parser.parse("length(last(/Linux generic by Zabbix agent/system.hostname))>0");
     }
 
     @Test
-    @Ignore
     public void canParseAllExpressionsFromTemplates() throws ParseException {
         ZabbixTemplateHandler zabbixTemplateHandler = new ZabbixTemplateHandler();
         List<String> triggerExpressions = new LinkedList<>();

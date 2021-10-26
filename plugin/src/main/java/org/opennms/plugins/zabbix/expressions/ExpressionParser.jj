@@ -6,6 +6,7 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Stack;
 
 public class ExpressionParser extends ExpressionParserBase {
 
@@ -15,6 +16,10 @@ public class ExpressionParser extends ExpressionParserBase {
 }
 
 PARSER_END(ExpressionParser)
+
+TOKEN_MGR_DECLS : {
+    Stack lexicalStateStack = new Stack();
+}
 
 // Skip whitespace characters
 SKIP : {
@@ -32,17 +37,18 @@ TOKEN : {
 // does not start with a "-", which is an operator
 | <NAME: (["0"-"9","a"-"z","A"-"Z","_","."])+(["0"-"9","a"-"z","A"-"Z","_","-","."])* >
 | <NUMBER: (["-"])?(["0"-"9","."])+  >
-| <FUNCTION_CALL: (["a"-"z"])+<LPAREN> > : IN_FUNCTION
+| <FUNCTION_CALL: (["a"-"z"])+<LPAREN> > { lexicalStateStack.push(curLexState); } : IN_FUNCTION
 | <MACRO: "{" (["a"-"z","A"-"Z",".","0"-"9",",","[","{","#","}","]","\"",":","$","_"])+ "}" >
 }
 
 <IN_FUNCTION> TOKEN : {
     < ITEM_NAME: (["0"-"9","a"-"z","A"-"Z","_","-",".","#"])+ >
+  | < FUNCTION_CALL_FN: (["a"-"z"])+"("> { lexicalStateStack.push(curLexState); } : IN_FUNCTION
   | < MACRO_FN: "{" (["a"-"z","A"-"Z",".","0"-"9",",","[","{","#","}","]","\"",":","$","_"])+ "}" >
   | < LSQUARE: "[" > : IN_KEY_PARM
   | < FORWARD_SLASH: "/" > : IN_HOST
   | < FN_COMMA: "," >
-  | < RPAREN_FUN: ")" >  : DEFAULT
+  | < RPAREN_FUN: ")" >  { SwitchTo((int)lexicalStateStack.pop()); }
 }
 
 <IN_HOST> TOKEN: {
@@ -136,7 +142,8 @@ FunctionCall FunctionCall() : {
   Token function = null;
 }
 {
-  function=<FUNCTION_CALL>
+  // support nested function call - in another context
+  (function=<FUNCTION_CALL>|function=<FUNCTION_CALL_FN>)
   p=FunctionParameter(){parameters.add(p);} (<FN_COMMA> p=FunctionParameter(){parameters.add(p);})*
   <RPAREN_FUN>
   { return new FunctionCall(function.image.substring(0, function.image.length()-1), parameters); }
