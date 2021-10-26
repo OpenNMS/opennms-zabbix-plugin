@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.netty.bootstrap.Bootstrap;
@@ -81,19 +82,21 @@ public class ZabbixAgentClient implements Closeable {
         }, 4); //TODO change to configurable
     }
 
-    public List<Map<String, Object>> discoverData(String key) throws IOException, ExecutionException, InterruptedException {
-        final String json = retrieveData(key).get();
-        ObjectMapper mapper = new ObjectMapper();
-        // FIXME: Not sure if all discovery rule keys follow the same format
-        try {
-            List<Map<String, Object>> entries = (List<Map<String, Object>>) mapper.readValue(json, List.class);
-            LOG.trace("{} = {}", key, entries);
-            return entries;
-        } catch (JsonParseException e) {
-            LOG.trace("{} = <invalid json>", key);
-            // FIXME: Handle "ZBX_NOTSUPPORTED" better
-            return Collections.emptyList();
-        }
+    public CompletableFuture<List<Map<String, Object>>> discoverData(String key) throws IOException {
+        return  retrieveData(key).thenApply(data -> {
+            ObjectMapper mapper = new ObjectMapper();
+            // FIXME: Not sure if all discovery rule keys follow the same format
+            try {
+                List<Map<String, Object>> entries = (List<Map<String, Object>>) mapper.readValue(data, List.class);
+                LOG.trace("{} = {}", key, entries);
+                return entries;
+            } catch (JsonProcessingException e) {
+                LOG.trace("{} = <invalid json>", key);
+                // FIXME: Handle "ZBX_NOTSUPPORTED" better
+                return Collections.emptyList();
+            }
+        });
+
     }
 
     public CompletableFuture<String> retrieveData(String key) throws IOException, ZabbixNotSupportedException {

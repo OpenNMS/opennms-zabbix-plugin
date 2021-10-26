@@ -22,7 +22,7 @@ public class ZabbixAgentClientTest {
     @Test
     public void canQueryLocalAgent() throws IOException, ExecutionException, InterruptedException {
         try (ZabbixAgentClient client = new ZabbixAgentClient(zabbixAgent.getAddress(), zabbixAgent.getPort())) {
-            List<Map<String, Object>> data = client.discoverData("vfs.fs.discovery");
+            List<Map<String, Object>> data = client.discoverData("vfs.fs.discovery").get();
             assertThat(data, not(empty()));
         }
     }

@@ -73,7 +73,7 @@ public class ZabbixAgentCollector implements ServiceCollector {
                 final ZabbixResourceTypeGenerator resourceTypeGenerator = new ZabbixResourceTypeGenerator();
                 for (DiscoveryRule rule : template.getDiscoveryRules()) {
                     try {
-                        final List<Map<String, Object>> entries = client.discoverData(rule.getKey());
+                        final List<Map<String, Object>> entries = client.discoverData(rule.getKey()).get();
                         // We have some data, let's create a new resource type
                         final ResourceType resourceType = resourceTypeGenerator.getResourceTypeFor(rule);
                         for (Map<String, Object> entry : entries) {
