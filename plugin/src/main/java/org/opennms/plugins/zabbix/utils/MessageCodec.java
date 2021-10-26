@@ -51,7 +51,7 @@ public class MessageCodec {
 
 
         String msg =data.readCharSequence(size, StandardCharsets.UTF_8).toString();
-        System.out.println(msg);
+        //System.out.println(msg);
         return msg;
         /*String msg = new String(bytes);
         return msg.substring(13);*/

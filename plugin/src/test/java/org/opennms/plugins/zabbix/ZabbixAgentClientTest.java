@@ -7,6 +7,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -17,6 +18,7 @@ import java.util.stream.IntStream;
 
 import org.junit.Rule;
 import org.junit.Test;
+import org.opennms.plugins.zabbix.utils.CallbackFunction;
 import org.opennms.plugins.zabbix.utils.MessageCodec;
 
 import io.netty.bootstrap.Bootstrap;
@@ -68,9 +70,21 @@ public class ZabbixAgentClientTest {
     public void testRetrieveDataLocalAgent() throws IOException, ExecutionException, InterruptedException {
         try (ZabbixAgentClient client = new ZabbixAgentClient(zabbixAgent.getAddress(), zabbixAgent.getPort())) {
             String result = client.retrieveData("vfs.fs.discovery").get();
+            System.out.println(result);
             assertThat(result, notNullValue());
         }
     }
+
+    //client with callback this can get the complete message
+    @Test
+    public void testCallBackClient() {
+        StringBuilder sb = new StringBuilder();
+        new CallBackClient("localhost", 10050).initialHandler("vfs.fs.discovery", msg -> {
+            sb.append(msg);
+        }).sendMessage();
+        System.out.println(sb.toString());
+    }
+
 
     //example client with promise
     @Test
@@ -80,7 +94,7 @@ public class ZabbixAgentClientTest {
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(group);
         bootstrap.channel(NioSocketChannel.class);
-        bootstrap.remoteAddress(new InetSocketAddress("localhost", 10050));
+        bootstrap.remoteAddress(new InetSocketAddress(zabbixAgent.getAddress(), zabbixAgent.getPort()));
         bootstrap.handler(new ChannelInitializer<SocketChannel>() {
 
             @Override
@@ -106,7 +120,7 @@ public class ZabbixAgentClientTest {
                 .option(ChannelOption.SO_KEEPALIVE, true)
                 .group(group)
                 .channel(NioSocketChannel.class)
-                .remoteAddress("localhost", 10050);
+                .remoteAddress(zabbixAgent.getAddress(), zabbixAgent.getPort());
 
         channelPool = new FixedChannelPool(bootstrap, new AbstractChannelPoolHandler() {
             @Override
@@ -132,7 +146,6 @@ public class ZabbixAgentClientTest {
                     }
                 }
             });
-
 
             try {
                 System.out.println(i + " " + future.get());
@@ -161,7 +174,6 @@ public class ZabbixAgentClientTest {
                     }
                 }
             });
-
 
             try {
                 System.out.println(i + " " + future.get());
@@ -264,6 +276,80 @@ public class ZabbixAgentClientTest {
             pool.release(ctx.channel());
             ctx.close();
             future.completeExceptionally(cause);
+        }
+    }
+
+
+    private static class CallBackClient {
+        private String host;
+        private int port;
+        CallBackClientHandler clientHandler;
+
+        public CallBackClient(String host, int port) {
+            this.host = host;
+            this.port = port;
+        }
+
+        public void sendMessage() {
+            if(clientHandler == null) {
+                throw new IllegalArgumentException("clientHandler is NULL, please define a tcpClientChannelHandler !");
+            }
+            EventLoopGroup group = new NioEventLoopGroup();
+            try {
+                Bootstrap b = new Bootstrap();
+                b.group(group)
+                        .channel(NioSocketChannel.class)
+                        .option(ChannelOption.TCP_NODELAY, true)
+                        // Configure the connect timeout option.
+                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
+                        .handler(new ChannelInitializer<SocketChannel>() {
+
+                            @Override
+                            protected void initChannel(SocketChannel socketChannel) throws Exception {
+                                ChannelPipeline p = socketChannel.pipeline();
+                                p.addLast(clientHandler);
+
+                            }
+                        });
+
+                ChannelFuture f = b.connect(host, port).sync();
+                f.channel().closeFuture().sync();
+            } catch (Exception  e) {
+                e.printStackTrace();
+            } finally {
+                group.shutdownGracefully();
+            }
+
+        }
+
+        public CallBackClient initialHandler(String key, CallbackFunction function) {
+            clientHandler = new CallBackClientHandler(key, function);
+            return this;
+        }
+    }
+
+
+    private static class CallBackClientHandler extends SimpleChannelInboundHandler {
+        private String key;
+        private CallbackFunction callBak;
+
+        public CallBackClientHandler(String key, CallbackFunction callBak) {
+            this.key = key;
+            this.callBak = callBak;
+        }
+
+
+        @Override
+        public void channelActive(ChannelHandlerContext channelHandlerContext){
+            ByteBuf buf = MessageCodec.encode(key);
+            channelHandlerContext.writeAndFlush(buf);
+        }
+
+        @Override
+        protected void channelRead0(ChannelHandlerContext channelHandlerContext, Object in) throws Exception {
+            ByteBuf data =(ByteBuf) in;
+            String msg = MessageCodec.decode(data);
+            callBak.process(msg);
         }
     }
 
