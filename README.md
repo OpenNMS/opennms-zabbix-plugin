@@ -2,6 +2,25 @@
 
 This plugin is an effort to have OpenNMS integrate with the Zabbix Agent and leverage the existing knowledge base of Zabbix templates available.
 
+## Mapping from keys to resources
+
+Item keys in Zabbix look like:
+* `vm.memory.utilization`
+* `vfs.file.contents[/sys/block/{#DEVNAME}/stat]`
+* `system.cpu.util[,iowait]`
+
+If no macro is present in the key, we assume that there is only a single metric per agent (or node).
+We place these on the "node level resource".
+
+`vm.memory.utilization` -> `node[1].nodeResource[].vm.memory.utilization`
+
+If a single macro is present in the key, we assume that this macro represents a unique index.
+This indexed is used to build a "generic resource" with the name of the discovery rule as the resource type name.
+
+`vfs.file.contents[/sys/block/{#DEVNAME}/stat]` -> `node[1].vfs.dev.discovery[/sys/block/md0/stat].nvfs.file.contents`
+
+Multiple macros are not currently supported.
+
 ## Building
 
 Build and install the plugin into your local Maven repository using:
