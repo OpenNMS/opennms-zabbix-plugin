@@ -36,6 +36,7 @@ public class ZabbixAgentCollectorTest {
 
         ZabbixAgentCollectorFactory zabbixAgentCollectorFactory = new ZabbixAgentCollectorFactory(nodeDao, templateResolver);
         Map<String, Object> runtimeAttributes = zabbixAgentCollectorFactory.getRuntimeAttributes(request);
+        zabbixAgentCollectorFactory.setAddressAndPort(request.getAddress(), zabbixAgent.getPort());
         ZabbixAgentCollector collector = zabbixAgentCollectorFactory.createCollector();
         Map<String, Object> collectorOptions = ImmutableMap.<String, Object>builder()
                 .put(ZabbixAgentCollector.PORT_KEY, zabbixAgent.getPort())
@@ -50,6 +51,6 @@ public class ZabbixAgentCollectorTest {
         // Verify
         CollectionSet collectionSet = future.get(5, TimeUnit.SECONDS);
         // Expect many resources
-        assertThat(collectionSet.getCollectionSetResources(), hasSize(2));
+        assertThat(collectionSet.getCollectionSetResources(), hasSize(15));
     }
 }

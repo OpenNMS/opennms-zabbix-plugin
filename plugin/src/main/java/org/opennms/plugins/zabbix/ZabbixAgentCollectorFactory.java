@@ -1,5 +1,6 @@
 package org.opennms.plugins.zabbix;
 
+import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,6 +29,8 @@ public class ZabbixAgentCollectorFactory implements ServiceCollectorFactory<Zabb
     private final NodeDao nodeDao;
     private final TemplateResolver templateResolver;
     private final ObjectMapper om;
+    private InetAddress agentAddress;
+    private int agentPort;
 
     public ZabbixAgentCollectorFactory(NodeDao nodeDao, TemplateResolver templateResolver) {
         this.nodeDao = Objects.requireNonNull(nodeDao);
@@ -37,9 +40,18 @@ public class ZabbixAgentCollectorFactory implements ServiceCollectorFactory<Zabb
         om.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
+    public void setAddressAndPort(InetAddress address, int port){
+        agentAddress = address;
+        agentPort = port;
+    }
+
     @Override
     public ZabbixAgentCollector createCollector() {
-        return new ZabbixAgentCollector();
+        if(agentAddress == null) {
+            throw new ZabbixNotSupportedException("Agent address not set");
+        }
+        ZabbixAgentClient client = new ZabbixAgentClient(agentAddress, agentPort);
+        return new ZabbixAgentCollector(client);
     }
 
     @Override

@@ -18,6 +18,7 @@ import org.opennms.plugins.zabbix.utils.MessageCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.aalto.evt.EventAllocatorImpl;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,6 +49,7 @@ import io.netty.util.concurrent.FutureListener;
  */
 public class ZabbixAgentClient implements Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(ZabbixAgentClient.class);
+    public static final String UNSUPPORTED_HEADER = "ZBX_NOTSUPPORTED";
     public static final int DEFAULT_PORT = 10050;
     private static AttributeKey<CompletableFuture<String>> FUTURE = AttributeKey.valueOf("zabbix_future");
     private ChannelPool channelPool;
@@ -87,12 +89,15 @@ public class ZabbixAgentClient implements Closeable {
             ObjectMapper mapper = new ObjectMapper();
             // FIXME: Not sure if all discovery rule keys follow the same format
             try {
+                if(data.startsWith(UNSUPPORTED_HEADER)) {
+                    LOG.error("{} <> {}", key, data);
+                    return Collections.emptyList();
+                }
                 List<Map<String, Object>> entries = (List<Map<String, Object>>) mapper.readValue(data, List.class);
                 LOG.trace("{} = {}", key, entries);
                 return entries;
             } catch (JsonProcessingException e) {
                 LOG.trace("{} = <invalid json>", key);
-                // FIXME: Handle "ZBX_NOTSUPPORTED" better
                 return Collections.emptyList();
             }
         });
@@ -100,7 +105,7 @@ public class ZabbixAgentClient implements Closeable {
     }
 
     public CompletableFuture<String> retrieveData(String key) throws IOException, ZabbixNotSupportedException {
-        if (channelPool == null) {
+        if (channelPool == null || group.isShutdown()) {
             openConnection();
         }
         ByteBuf buf = MessageCodec.encode(key);
@@ -116,7 +121,6 @@ public class ZabbixAgentClient implements Closeable {
                 }
             }
         });
-
         return future;
     }
 
