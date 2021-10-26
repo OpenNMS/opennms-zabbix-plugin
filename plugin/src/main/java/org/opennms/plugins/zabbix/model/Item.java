@@ -8,6 +8,7 @@ public class Item {
     private String key;
     private List<PreprocessingRule> preprocessing = new LinkedList<>();
     private List<Tag> tags = new LinkedList<>();
+    private List<Trigger> triggers = new LinkedList<>();
 
     public String getName() {
         return name;
@@ -39,5 +40,13 @@ public class Item {
 
     public void setTags(List<Tag> tags) {
         this.tags = tags;
+    }
+
+    public List<Trigger> getTriggers() {
+        return triggers;
+    }
+
+    public void setTriggers(List<Trigger> triggers) {
+        this.triggers = triggers;
     }
 }

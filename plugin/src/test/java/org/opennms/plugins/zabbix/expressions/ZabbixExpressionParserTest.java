@@ -7,8 +7,8 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -120,12 +120,12 @@ public class ZabbixExpressionParserTest {
 
         expression = parser.parse("min(/Linux block devices by Zabbix agent/vfs.dev.read.await[{#DEVNAME}],15m) > {$VFS.DEV.READ.AWAIT.WARN:\"{#DEVNAME}\"} or min(/Linux block devices by Zabbix agent/vfs.dev.write.await[{#DEVNAME}],15m) > {$VFS.DEV.WRITE.AWAIT.WARN:\"{#DEVNAME}\"}");
         Expression lhsExression = (Expression)expression.getLhs();
+        lhsExression = (Expression)lhsExression.getLhs();
         fn = (FunctionCall)lhsExression.getLhs();
         assertThat(fn.getName(), equalTo("min"));
-        assertThat(expression.getOperator(), equalTo("or"));
-        Expression rhsExpression = (Expression)expression.getRhs();
-        fn = (FunctionCall)rhsExpression.getLhs();
-        assertThat(fn.getName(), equalTo("min"));
+        assertThat(expression.getOperator(), equalTo(">"));
+        constant = (Constant)expression.getRhs();
+        assertThat(constant.getValue(), equalTo("{$VFS.DEV.WRITE.AWAIT.WARN:\"{#DEVNAME}\"}"));
 
         parser.parse("max(1,2)>5 or max(2,3)>4");
         parser.parse("max(1,2)>5 or (max(2,3)>4 and max(1,2)<4)");
@@ -133,18 +133,24 @@ public class ZabbixExpressionParserTest {
         parser.parse("last(/Linux filesystems by Zabbix agent/vfs.fs.size[{#FSNAME},total])-last(/Linux filesystems by Zabbix agent/vfs.fs.size[{#FSNAME},used])");
         parser.parse("timeleft(/Linux filesystems by Zabbix agent/vfs.fs.size[{#FSNAME},pused],1h,100)<1d");
         parser.parse("(max(1,2)-min(2,3))<0");
-        //parser.parse("(avg(/Windows network by Zabbix agent/net.if.in[\"{#IFGUID}\"],15m)>({$IF.UTIL.MAX:\"{#IFNAME}\"}/100)*last(/Windows network by Zabbix agent/net.if.speed[\"{#IFGUID}\"])");
+        parser.parse("avg(/Windows network by Zabbix agent/net.if.in[\"{#IFGUID}\"],15m)>({$IF.UTIL.MAX:\"{#IFNAME}\"}/100)*last(/Windows network by Zabbix agent/net.if.speed[\"{#IFGUID}\"])");
     }
 
     @Test
     @Ignore
     public void canParseAllExpressionsFromTemplates() throws ParseException {
         ZabbixTemplateHandler zabbixTemplateHandler = new ZabbixTemplateHandler();
-        List<String> triggerExpressions = zabbixTemplateHandler.getTemplates().stream()
+        List<String> triggerExpressions = new LinkedList<>();
+        zabbixTemplateHandler.getTemplates().stream()
                 .flatMap(t -> t.getDiscoveryRules().stream())
                 .flatMap(r -> r.getTriggerPrototypes().stream())
                 .map(Trigger::getExpression)
-                .collect(Collectors.toList());
+                .forEach(triggerExpressions::add);
+        zabbixTemplateHandler.getTemplates().stream()
+                .flatMap(t -> t.getItems().stream())
+                .flatMap(r -> r.getTriggers().stream())
+                .map(Trigger::getExpression)
+                .forEach(triggerExpressions::add);
         // make sure we have a few
         assertThat(triggerExpressions, hasSize(greaterThanOrEqualTo(4)));
         for (String triggerExpression : triggerExpressions) {
