@@ -38,7 +38,6 @@ import io.netty.buffer.Unpooled;
 public class MessageCodec {
     private static final int HEADER_LENGTH = 13;
     public static String decode(ByteBuf data) {
-        //TODO: validate header and data length
         validateData(data);
         //ignore header and padding
         data.readBytes(13);
