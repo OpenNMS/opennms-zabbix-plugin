@@ -57,30 +57,28 @@ public class ZabbixAgentClient implements Closeable {
     private final InetAddress address;
     private final int port;
 
-    //private SocketChannel channel;
-
     public ZabbixAgentClient(InetAddress address, int port) {
         this.address = Objects.requireNonNull(address);
         this.port = port;
     }
 
-    private void openConnection(InetAddress address, int port) throws IOException {
+    private void openConnection() {
         group = new NioEventLoopGroup(10); //TODO changed to configurable
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 .option(ChannelOption.SO_KEEPALIVE, true)
+                .option(ChannelOption.TCP_NODELAY, true)
                 .group(group)
                 .channel(NioSocketChannel.class)
-                .remoteAddress("localhost", 10050);
+                .remoteAddress(address, port);
 
         channelPool = new FixedChannelPool(bootstrap, new AbstractChannelPoolHandler() {
             @Override
             public void channelCreated(Channel channel) throws Exception {
                 ChannelPipeline pipeline = channel.pipeline();
-                //pipeline.addLast("framer", new DelimiterBasedFrameDecoder(8192, Delimiters.lineDelimiter()));
                 pipeline.addLast("clientHandler", new PooledClientHandler(channelPool));
             }
-        }, 20); //TODO change to configurable
+        }, 4); //TODO change to configurable
     }
 
     public List<Map<String, Object>> discoverData(String key) throws IOException, ExecutionException, InterruptedException {
@@ -100,7 +98,7 @@ public class ZabbixAgentClient implements Closeable {
 
     public CompletableFuture<String> retrieveData(String key) throws IOException, ZabbixNotSupportedException {
         if (channelPool == null) {
-            openConnection(address, port);
+            openConnection();
         }
         ByteBuf buf = MessageCodec.encode(key);
         CompletableFuture<String> future = new CompletableFuture<>();
@@ -127,8 +125,8 @@ public class ZabbixAgentClient implements Closeable {
     }
 
     private static class PooledClientHandler extends SimpleChannelInboundHandler {
-
         private ChannelPool pool;
+        private StringBuilder sb = new StringBuilder();
 
         public PooledClientHandler(ChannelPool pool) {
             this.pool = pool;
@@ -136,16 +134,18 @@ public class ZabbixAgentClient implements Closeable {
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, Object in) throws Exception {
+            ByteBuf data =(ByteBuf) in;
+            String msg = MessageCodec.decode(data);
+            sb.append(msg);
+            pool.release(ctx.channel());
+        }
+
+        @Override
+        public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
             Attribute<CompletableFuture<String>> futureAttribute = ctx.channel().attr(FUTURE);
             CompletableFuture<String> future = futureAttribute.getAndSet(new CompletableFuture<>());
-            ByteBuf data = (ByteBuf) in;
-            String msg = MessageCodec.decode(data);
-            try {
-                pool.release(ctx.channel(), ctx.channel().voidPromise());
-            } catch (IllegalArgumentException e) {
-                System.out.println("error");
-            }
-            future.complete(msg);
+            future.complete(sb.toString());
+            ctx.fireChannelReadComplete();
         }
 
         @Override
