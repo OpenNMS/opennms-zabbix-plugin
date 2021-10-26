@@ -28,25 +28,17 @@ SKIP : {
 TOKEN : {
   <LPAREN: "(" >
 | <RPAREN: ")" >
-| <OPERATOR: ( "-"|"*"|"/"|"+"|<AND>|<OR>|<LESS_THAN>|<LESS_THAN_OR_EQUAL>|<MORE_THAN>|<MORE_THAN_OR_EQUAL>|<EQUAL>|<NOT_EQUAL>)>
-| <AND: ("AND" | "and" | "&&") >
-| <OR: ("OR" | "or" | "||") >
-| <NOT: "not" >
-| <LESS_THAN: "<" >
-| <LESS_THAN_OR_EQUAL: "<=" >
-| <MORE_THAN: ">" >
-| <MORE_THAN_OR_EQUAL: ">=" >
-| <EQUAL: "=" >
-| <NOT_EQUAL: "<>" >
-// does not start with "." or "-"
-| <NAME: (["0"-"9","a"-"z","A"-"Z","_"])+(["0"-"9","a"-"z","A"-"Z","_","-","."])* >
+| <OPERATOR: ( "-"|"*"|"/"|"+"|"AND"|"and"|"&&"|"OR"|"or"|"||"|"not"|"<"|"<="|">"|">="|"="|"<>")>
+// does not start with a "-", which is an operator
+| <NAME: (["0"-"9","a"-"z","A"-"Z","_","."])+(["0"-"9","a"-"z","A"-"Z","_","-","."])* >
 | <NUMBER: (["-"])?(["0"-"9","."])+  >
 | <FUNCTION_CALL: (["a"-"z"])+<LPAREN> > : IN_FUNCTION
-| <MACRO: "{" (["a"-"z","A"-"Z",".","0"-"9",",","[","{","#","}","]","\"",":","$"])+ "}" >
+| <MACRO: "{" (["a"-"z","A"-"Z",".","0"-"9",",","[","{","#","}","]","\"",":","$","_"])+ "}" >
 }
 
 <IN_FUNCTION> TOKEN : {
-    < ITEM_NAME: (["0"-"9","a"-"z","A"-"Z","_","-","."])+ >
+    < ITEM_NAME: (["0"-"9","a"-"z","A"-"Z","_","-",".","#"])+ >
+  | < MACRO_FN: "{" (["a"-"z","A"-"Z",".","0"-"9",",","[","{","#","}","]","\"",":","$","_"])+ "}" >
   | < LSQUARE: "[" > : IN_KEY_PARM
   | < FORWARD_SLASH: "/" > : IN_HOST
   | < FN_COMMA: "," >
@@ -131,11 +123,11 @@ Term FunctionParameter() : {
    ItemKey i;
    HostAndKey h;
    FunctionCall f;
-   Constant c;
+   Token t;
 }
 {
-  LOOKAHEAD(2)
-  f=FunctionCall(){return f;}|h=HostAndKey() {return h;}|i=Item() {return i;}
+  LOOKAHEAD(4)
+  f=FunctionCall(){return f;}|h=HostAndKey() {return h;}|i=Item(){return i;}|t=<MACRO_FN>{return new Constant(t.image);}
 }
 
 FunctionCall FunctionCall() : {

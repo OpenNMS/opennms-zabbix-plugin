@@ -134,6 +134,9 @@ public class ZabbixExpressionParserTest {
         parser.parse("timeleft(/Linux filesystems by Zabbix agent/vfs.fs.size[{#FSNAME},pused],1h,100)<1d");
         parser.parse("(max(1,2)-min(2,3))<0");
         parser.parse("avg(/Windows network by Zabbix agent/net.if.in[\"{#IFGUID}\"],15m)>({$IF.UTIL.MAX:\"{#IFNAME}\"}/100)*last(/Windows network by Zabbix agent/net.if.speed[\"{#IFGUID}\"])");
+        parser.parse("max(/Zabbix agent/zabbix[host,agent,available],{$AGENT.TIMEOUT})=0");
+        parser.parse("nodata(/Zabbix agent active/agent.ping,{$AGENT.NODATA_TIMEOUT})=1");
+        //parser.parse("length(last(/Linux generic by Zabbix agent/system.hostname))>0");
     }
 
     @Test
