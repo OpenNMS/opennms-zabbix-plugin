@@ -11,6 +11,8 @@
             <!-- just a placeholder -->
             <!-- maybe point to additional templates sources? -->
             <cm:property name="key" value="value" />
+            <cm:property name="clientThreadSize" value="5" />
+            <cm:property name="clientPoolSize" value="10" />
         </cm:default-properties>
     </cm:property-placeholder>
 
@@ -26,9 +28,15 @@
     </bean>
     <service interface="org.opennms.plugins.zabbix.TemplateResolver" ref="templateResolver" />
 
+    <bean id="zabbixAgentClientFactory" class="org.opennms.plugins.zabbix.ZabbixAgentClientFactory">
+        <argument value="${clientThreadSize}"/>
+        <argument value="${clientPoolSize}"/>
+    </bean>
+
     <bean id="zabbixAgentCollectorFactory" class="org.opennms.plugins.zabbix.ZabbixAgentCollectorFactory" >
         <argument ref="nodeDao" />
         <argument ref="templateResolver" />
+        <property name="clientFactory" ref="zabbixAgentClientFactory" />
     </bean>
     <service interface="org.opennms.integration.api.v1.collectors.ServiceCollectorFactory" ref="zabbixAgentCollectorFactory" >
         <service-properties>

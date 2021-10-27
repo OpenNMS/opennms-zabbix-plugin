@@ -35,20 +35,30 @@ public class ZabbixAgentCollector implements ServiceCollector {
 
     private final ZabbixMetricMapper metricMapper = new ZabbixMetricMapper();
 
-    private ZabbixAgentClient client;
+    private ZabbixAgentClientFactory clientFactory;
 
-    public ZabbixAgentCollector(ZabbixAgentClient client) {
-        this.client = client;
+    public ZabbixAgentCollector(ZabbixAgentClientFactory clientFactory) {
+        this.clientFactory = clientFactory;
     }
 
     @Override
     public CompletableFuture<CollectionSet> collect(CollectionRequest collectionRequest, Map<String, Object> map) {
         final CompletableFuture<CollectionSet> future = new CompletableFuture<>();
 
+        int port = ZabbixAgentClient.DEFAULT_PORT;
+        if(map.containsKey(PORT_KEY)) {
+            try {
+                port = Integer.parseInt(map.get(PORT_KEY).toString());
+            } catch (NumberFormatException e) {
+                LOG.error("Invalid port '{}', using default: {}", map.get(PORT_KEY), port);
+            }
+        }
+
         int nodeId = Integer.parseInt((String) map.get(ZabbixAgentCollectorFactory.NODE_ID_KEY));
         List<Template> templates = (List<Template>) map.get(ZabbixAgentCollectorFactory.TEMPLATES_KEY);
 
         try {
+            ZabbixAgentClient client = clientFactory.createClient(collectionRequest.getAddress(), port);
             NodeResource nodeResource = ImmutableNodeResource.newBuilder().setNodeId(nodeId).build();
             ImmutableCollectionSetResource.Builder<NodeResource> nodeResourceBuilder = ImmutableCollectionSetResource.newBuilder(NodeResource.class)
                     .setResource(nodeResource);

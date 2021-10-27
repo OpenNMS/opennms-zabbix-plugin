@@ -1,6 +1,8 @@
 package org.opennms.plugins.zabbix;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -23,6 +25,8 @@ public class ZabbixAgentCollectorTest {
 
     @Rule
     public MockZabbixAgent zabbixAgent = new MockZabbixAgent();
+    private int threadSize = 4;
+    private int poolSize = 10;
 
     @Test
     public void canCollectCpuDetails() throws ExecutionException, InterruptedException, TimeoutException {
@@ -33,10 +37,10 @@ public class ZabbixAgentCollectorTest {
         ZabbixTemplateHandler zabbixTemplateHandler = new ZabbixTemplateHandler();
         TemplateResolver templateResolver = mock(TemplateResolver.class);
         when(templateResolver.getTemplatesForNode(null)).thenReturn(zabbixTemplateHandler.getTemplates());
-
+        ZabbixAgentClientFactory clientFactory =new ZabbixAgentClientFactory(threadSize, poolSize);
         ZabbixAgentCollectorFactory zabbixAgentCollectorFactory = new ZabbixAgentCollectorFactory(nodeDao, templateResolver);
+        zabbixAgentCollectorFactory.setClientFactory(clientFactory);
         Map<String, Object> runtimeAttributes = zabbixAgentCollectorFactory.getRuntimeAttributes(request);
-        zabbixAgentCollectorFactory.setAddressAndPort(request.getAddress(), zabbixAgent.getPort());
         ZabbixAgentCollector collector = zabbixAgentCollectorFactory.createCollector();
         Map<String, Object> collectorOptions = ImmutableMap.<String, Object>builder()
                 .put(ZabbixAgentCollector.PORT_KEY, zabbixAgent.getPort())
@@ -51,6 +55,6 @@ public class ZabbixAgentCollectorTest {
         // Verify
         CollectionSet collectionSet = future.get(5, TimeUnit.SECONDS);
         // Expect many resources
-        assertThat(collectionSet.getCollectionSetResources(), hasSize(15));
+        assertThat(collectionSet.getCollectionSetResources().size(), greaterThan(5));
     }
 }

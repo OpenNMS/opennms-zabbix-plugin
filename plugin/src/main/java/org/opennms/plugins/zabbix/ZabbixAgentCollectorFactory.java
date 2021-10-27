@@ -29,8 +29,7 @@ public class ZabbixAgentCollectorFactory implements ServiceCollectorFactory<Zabb
     private final NodeDao nodeDao;
     private final TemplateResolver templateResolver;
     private final ObjectMapper om;
-    private InetAddress agentAddress;
-    private int agentPort;
+    private ZabbixAgentClientFactory clientFactory;
 
     public ZabbixAgentCollectorFactory(NodeDao nodeDao, TemplateResolver templateResolver) {
         this.nodeDao = Objects.requireNonNull(nodeDao);
@@ -40,18 +39,17 @@ public class ZabbixAgentCollectorFactory implements ServiceCollectorFactory<Zabb
         om.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
-    public void setAddressAndPort(InetAddress address, int port){
-        agentAddress = address;
-        agentPort = port;
+    public ZabbixAgentClientFactory getClientFactory() {
+        return clientFactory;
+    }
+
+    public void setClientFactory(ZabbixAgentClientFactory clientFactory) {
+        this.clientFactory = clientFactory;
     }
 
     @Override
     public ZabbixAgentCollector createCollector() {
-        if(agentAddress == null) {
-            throw new ZabbixNotSupportedException("Agent address not set");
-        }
-        ZabbixAgentClient client = new ZabbixAgentClient(agentAddress, agentPort);
-        return new ZabbixAgentCollector(client);
+        return new ZabbixAgentCollector(clientFactory);
     }
 
     @Override

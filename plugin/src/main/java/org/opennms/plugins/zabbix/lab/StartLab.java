@@ -109,7 +109,7 @@ public class StartLab implements Action {
             System.out.printf("Node with id=%s and label=%s is now present.\n", node.getId(), node.getLabel());
 
             // Trigger the collection
-
+            ZabbixAgentCollector collector = zabbixServiceCollectorFactory.createCollector();
             CollectionRequest collectionRequest = new CollectionRequest() {
                 @Override
                 public InetAddress getAddress() {
@@ -125,8 +125,6 @@ public class StartLab implements Action {
                             .put(ZabbixAgentCollector.PORT_KEY, agent.getPort())
                             .putAll(zabbixServiceCollectorFactory.getRuntimeAttributes(collectionRequest))
                             .build();
-            ((ZabbixAgentCollectorFactory)zabbixServiceCollectorFactory).setAddressAndPort(collectionRequest.getAddress(), agent.getPort());
-            ZabbixAgentCollector collector = zabbixServiceCollectorFactory.createCollector();
 
             for (int i = 0; i < 2; i++) {
                 if (i != 0) {

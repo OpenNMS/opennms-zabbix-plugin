@@ -53,25 +53,19 @@ public class ZabbixAgentClient implements Closeable {
     public static final int DEFAULT_PORT = 10050;
     private static AttributeKey<CompletableFuture<String>> FUTURE = AttributeKey.valueOf("zabbix_future");
     private ChannelPool channelPool;
-    private EventLoopGroup group;
+    private static EventLoopGroup group;
 
     private static int HEADER_LENGTH = 13;
 
-    private final InetAddress address;
-    private final int port;
-
-    public ZabbixAgentClient(InetAddress address, int port) {
-        this.address = Objects.requireNonNull(address);
-        this.port = port;
-    }
-
-    private void openConnection() {
-        group = new NioEventLoopGroup(10); //TODO changed to configurable
+    public ZabbixAgentClient(int threadSize, InetAddress address, int port, int maxConnection) {
+        if(group == null || group.isShutdown()) {
+            group = new NioEventLoopGroup(threadSize);
+        }
         Bootstrap bootstrap = new Bootstrap();
-        bootstrap.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+        bootstrap.group(group)
+                .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 .option(ChannelOption.SO_KEEPALIVE, true)
                 .option(ChannelOption.TCP_NODELAY, true)
-                .group(group)
                 .channel(NioSocketChannel.class)
                 .remoteAddress(address, port);
 
@@ -81,7 +75,7 @@ public class ZabbixAgentClient implements Closeable {
                 ChannelPipeline pipeline = channel.pipeline();
                 pipeline.addLast("clientHandler", new PooledClientHandler(channelPool));
             }
-        }, 4); //TODO change to configurable
+        }, maxConnection);
     }
 
     public CompletableFuture<List<Map<String, Object>>> discoverData(String key) throws IOException {
@@ -105,9 +99,6 @@ public class ZabbixAgentClient implements Closeable {
     }
 
     public CompletableFuture<String> retrieveData(String key) throws IOException, ZabbixNotSupportedException {
-        if (channelPool == null || group.isShutdown()) {
-            openConnection();
-        }
         ByteBuf buf = MessageCodec.encode(key);
         CompletableFuture<String> future = new CompletableFuture<>();
         Future<Channel> channelFuture = channelPool.acquire();
@@ -126,8 +117,8 @@ public class ZabbixAgentClient implements Closeable {
 
     @Override
     public void close() {
-        if (group != null) {
-            group.shutdownGracefully();
+        if (channelPool != null) {
+            channelPool.close();
         }
     }
 
