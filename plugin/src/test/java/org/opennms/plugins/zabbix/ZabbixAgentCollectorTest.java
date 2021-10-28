@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -25,8 +26,8 @@ public class ZabbixAgentCollectorTest {
 
     @Rule
     public MockZabbixAgent zabbixAgent = new MockZabbixAgent();
-    private int threadSize = 4;
-    private int poolSize = 10;
+    private int threadSize = 10;
+    private int poolSize = 50;
 
     @Test
     public void canCollectCpuDetails() throws ExecutionException, InterruptedException, TimeoutException {
@@ -53,8 +54,8 @@ public class ZabbixAgentCollectorTest {
         CompletableFuture<CollectionSet> future = collector.collect(request, collectorOptions);
 
         // Verify
-        CollectionSet collectionSet = future.get(5, TimeUnit.SECONDS);
+        CollectionSet collectionSet = future.get(15, TimeUnit.SECONDS);
         // Expect many resources
-        assertThat(collectionSet.getCollectionSetResources().size(), greaterThan(5));
+        assertThat(collectionSet.getCollectionSetResources().size(), is(15));
     }
 }

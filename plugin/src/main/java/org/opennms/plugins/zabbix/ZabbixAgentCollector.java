@@ -1,9 +1,11 @@
 package org.opennms.plugins.zabbix;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.opennms.integration.api.v1.collectors.CollectionRequest;
 import org.opennms.integration.api.v1.collectors.CollectionSet;
@@ -67,47 +69,36 @@ public class ZabbixAgentCollector implements ServiceCollector {
                     .setStatus(CollectionSet.Status.SUCCEEDED);
 
             // Process the template
+            List<CompletableFuture<Void>> futureList = new ArrayList<>();
             for (Template template : templates) {
                 LOG.debug("Processing template with name: {}", template.getName());
-                for (Item item : template.getItems()) {
-                    String value = client.retrieveData(item.getKey()).get();
-                    addValueToMapper(null, item, value, nodeResourceBuilder);
-                }
-
-                final ZabbixResourceTypeGenerator resourceTypeGenerator = new ZabbixResourceTypeGenerator();
-                for (DiscoveryRule rule : template.getDiscoveryRules()) {
-                    try {
-                        final List<Map<String, Object>> entries = client.discoverData(rule.getKey()).get();
-                        // We have some data, let's create a new resource type
-                        final ResourceType resourceType = resourceTypeGenerator.getResourceTypeFor(rule);
-                        for (Map<String, Object> entry : entries) {
-                            // Create a new resource for the entry
-                            final ImmutableCollectionSetResource.Builder<GenericTypeResource> resourceBuilder = ImmutableCollectionSetResource.newBuilder(GenericTypeResource.class)
-                                    .setResource(ImmutableGenericTypeResource.newBuilder()
-                                            .setNodeResource(nodeResource)
-                                            .setType(resourceType.getName())
-                                            .setInstance(resourceTypeGenerator.getIndex(rule, entry))
-                                            .build());
-
-                            // Process the items in the rule
-                            boolean didAddAttribute = false;
-                            for (Item item : rule.getItemPrototypes()) {
-                                final String effectiveKey = ZabbixMacroSupport.evaluateMacro(item.getKey(), entry);
-                                String value = client.retrieveData(effectiveKey).get();
-                                addValueToMapper(rule, item, value, resourceBuilder);
-                                didAddAttribute = true;
-                            }
-
-                            // Only add the resource if we found 1+ items
-                            if (didAddAttribute) {
-                                collectionSetBuilder.addCollectionSetResource(resourceBuilder.build());
-                            }
+                processItems(client, null, template.getItems(), nodeResourceBuilder).thenRunAsync(() -> {
+                    final ZabbixResourceTypeGenerator resourceTypeGenerator = new ZabbixResourceTypeGenerator();
+                    List<CompletableFuture<Void>> ruleFutureList = new ArrayList<>();
+                    for (DiscoveryRule rule : template.getDiscoveryRules()) {
+                        try {
+                            ruleFutureList.add(client.discoverData(rule.getKey())
+                                    .thenAccept(list -> {
+                                        try {
+                                            processEntries(client, rule, list, collectionSetBuilder, nodeResource, resourceTypeGenerator);
+                                        } catch (IOException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }));
+                        } catch (ZabbixNotSupportedException | IOException e) {
+                            // pass
                         }
-                    } catch (ZabbixNotSupportedException e) {
-                        // pass
                     }
-                }
+                    try {
+                        CompletableFuture.allOf(ruleFutureList.toArray(new CompletableFuture[ruleFutureList.size()])).get();
+                    } catch (InterruptedException | ExecutionException e) {
+                        e.printStackTrace();
+                    }
+                }).get();
             }
+
+
+
             collectionSetBuilder.addCollectionSetResource(nodeResourceBuilder.build());
             future.complete(collectionSetBuilder.build());
         } catch (IOException | NumberFormatException e) {
@@ -117,6 +108,39 @@ public class ZabbixAgentCollector implements ServiceCollector {
             future.completeExceptionally(e);
         }
         return future;
+    }
+
+
+    private CompletableFuture<Void> processItems(ZabbixAgentClient client, DiscoveryRule rule, List<Item> items, ImmutableCollectionSetResource.Builder<?> resourceBuilder) throws IOException {
+        List<CompletableFuture<Void>> futureList = new ArrayList<>();
+        for (Item item : items) {
+            futureList.add(client.retrieveData(item.getKey()).thenAcceptAsync(value -> addValueToMapper(rule, item, value, resourceBuilder)));
+        }
+        return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[futureList.size()]));
+    }
+
+    private CompletableFuture<Void> processEntries(ZabbixAgentClient client, DiscoveryRule rule, List<Map<String, Object>> entries,
+                                                   ImmutableCollectionSet.Builder collectionSetBuilder, NodeResource nodeResource, ZabbixResourceTypeGenerator resourceTypeGenerator) throws IOException {
+        List<CompletableFuture<Void>> futureList = new ArrayList<>();
+        final ResourceType resourceType = resourceTypeGenerator.getResourceTypeFor(rule);
+        for (Map<String, Object> entry : entries) {
+            // Create a new resource for the entry
+            final ImmutableCollectionSetResource.Builder<GenericTypeResource> resourceBuilder = ImmutableCollectionSetResource.newBuilder(GenericTypeResource.class)
+                    .setResource(ImmutableGenericTypeResource.newBuilder()
+                            .setNodeResource(nodeResource)
+                            .setType(resourceType.getName())
+                            .setInstance(resourceTypeGenerator.getIndex(rule, entry))
+                            .build());
+
+            // Process the items in the rule
+            boolean didAddAttribute = false;
+            futureList.add(processItems(client, rule, rule.getItemPrototypes(), resourceBuilder).thenRunAsync(() ->{
+                if(rule.getItemPrototypes().size() > 0) {
+                    collectionSetBuilder.addCollectionSetResource(resourceBuilder.build());
+                }
+            }));
+        }
+        return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[futureList.size()]));
     }
 
     private void addValueToMapper(DiscoveryRule rule, Item item, String value, ImmutableCollectionSetResource.Builder<?> resourceBuilder) {

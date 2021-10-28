@@ -3,10 +3,6 @@ package org.opennms.plugins.zabbix;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -79,7 +75,7 @@ public class ZabbixAgentClient implements Closeable {
     }
 
     public CompletableFuture<List<Map<String, Object>>> discoverData(String key) throws IOException {
-        return  retrieveData(key).thenApply(data -> {
+        return  retrieveData(key).thenApplyAsync(data -> {
             ObjectMapper mapper = new ObjectMapper();
             // FIXME: Not sure if all discovery rule keys follow the same format
             try {
@@ -134,6 +130,7 @@ public class ZabbixAgentClient implements Closeable {
         protected void channelRead0(ChannelHandlerContext ctx, Object in) throws Exception {
             ByteBuf data =(ByteBuf) in;
             String msg = MessageCodec.decode(data);
+            data.clear();
             sb.append(msg);
             pool.release(ctx.channel());
         }
@@ -143,6 +140,7 @@ public class ZabbixAgentClient implements Closeable {
             Attribute<CompletableFuture<String>> futureAttribute = ctx.channel().attr(FUTURE);
             CompletableFuture<String> future = futureAttribute.getAndSet(new CompletableFuture<>());
             future.complete(sb.toString());
+            pool.release(ctx.channel());
             ctx.fireChannelReadComplete();
         }
 

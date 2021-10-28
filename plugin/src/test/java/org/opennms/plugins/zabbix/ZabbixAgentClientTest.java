@@ -3,6 +3,7 @@ package org.opennms.plugins.zabbix;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 
@@ -35,6 +36,14 @@ public class ZabbixAgentClientTest {
         try (ZabbixAgentClient client = new ZabbixAgentClient(threadSize, zabbixAgent.getAddress(), zabbixAgent.getPort(), poolSize)) {
             String result = client.retrieveData("vfs.fs.discovery").get();
             assertThat(result, notNullValue());
+        }
+    }
+
+    @Test
+    public void testRetrieveUnSupport() throws IOException, ExecutionException, InterruptedException {
+        try (ZabbixAgentClient client = new ZabbixAgentClient(threadSize, zabbixAgent.getAddress(), zabbixAgent.getPort(), poolSize)) {
+            String result = client.retrieveData("some-bad-key").get();
+            assertThat(result, startsWith(ZabbixAgentClient.UNSUPPORTED_HEADER));
         }
     }
 
