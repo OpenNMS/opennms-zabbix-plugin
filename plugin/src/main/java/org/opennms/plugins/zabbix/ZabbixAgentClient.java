@@ -6,29 +6,24 @@ import java.net.InetAddress;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
-import org.opennms.plugins.zabbix.utils.MessageCodec;
+import org.opennms.plugins.zabbix.utils.ClientRequestEncoder;
+import org.opennms.plugins.zabbix.utils.ClientResponseDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.aalto.evt.EventAllocatorImpl;
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.pool.AbstractChannelPoolHandler;
 import io.netty.channel.pool.ChannelPool;
 import io.netty.channel.pool.FixedChannelPool;
@@ -49,15 +44,9 @@ public class ZabbixAgentClient implements Closeable {
     public static final int DEFAULT_PORT = 10050;
     private static AttributeKey<CompletableFuture<String>> FUTURE = AttributeKey.valueOf("zabbix_future");
     private ChannelPool channelPool;
-    private static EventLoopGroup group;
 
-    private static int HEADER_LENGTH = 13;
-
-    public ZabbixAgentClient(int threadSize, InetAddress address, int port, int maxConnection) {
-        if(group == null || group.isShutdown()) {
-            group = new NioEventLoopGroup(threadSize);
-        }
-        Bootstrap bootstrap = new Bootstrap();
+    public ZabbixAgentClient(EventLoopGroup group, InetAddress address, int port, int maxConnection) {
+       Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(group)
                 .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 .option(ChannelOption.SO_KEEPALIVE, true)
@@ -69,7 +58,9 @@ public class ZabbixAgentClient implements Closeable {
             @Override
             public void channelCreated(Channel channel) throws Exception {
                 ChannelPipeline pipeline = channel.pipeline();
-                pipeline.addLast("clientHandler", new PooledClientHandler(channelPool));
+                pipeline.addLast("encoder", new ClientRequestEncoder())
+                        .addLast("decoder", new ClientResponseDecoder())
+                        .addLast("clientHandler", new PooledClientHandler(channelPool));
             }
         }, maxConnection);
     }
@@ -95,7 +86,6 @@ public class ZabbixAgentClient implements Closeable {
     }
 
     public CompletableFuture<String> retrieveData(String key) throws IOException, ZabbixNotSupportedException {
-        ByteBuf buf = MessageCodec.encode(key);
         CompletableFuture<String> future = new CompletableFuture<>();
         Future<Channel> channelFuture = channelPool.acquire();
         channelFuture.addListener(new FutureListener<Channel>() {
@@ -104,7 +94,7 @@ public class ZabbixAgentClient implements Closeable {
                 if (f.isSuccess()) {
                     Channel channel = f.getNow();
                     channel.attr(FUTURE).set(future);
-                    channel.writeAndFlush(buf, channel.voidPromise());
+                    channel.writeAndFlush(key, channel.voidPromise());
                 }
             }
         });
@@ -118,7 +108,7 @@ public class ZabbixAgentClient implements Closeable {
         }
     }
 
-    private static class PooledClientHandler extends SimpleChannelInboundHandler {
+    private static class PooledClientHandler extends ChannelInboundHandlerAdapter {
         private ChannelPool pool;
         private StringBuilder sb = new StringBuilder();
 
@@ -127,10 +117,8 @@ public class ZabbixAgentClient implements Closeable {
         }
 
         @Override
-        protected void channelRead0(ChannelHandlerContext ctx, Object in) throws Exception {
-            ByteBuf data =(ByteBuf) in;
-            String msg = MessageCodec.decode(data);
-            data.clear();
+        public void channelRead(ChannelHandlerContext ctx, Object in) throws Exception {
+            String msg = (String) in;
             sb.append(msg);
             pool.release(ctx.channel());
         }

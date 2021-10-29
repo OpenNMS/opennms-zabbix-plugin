@@ -33,17 +33,20 @@ import java.net.InetAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+
 public class ZabbixAgentClientFactory {
     private static final Logger LOG = LoggerFactory.getLogger(ZabbixAgentClientFactory.class);
-    private int threadSize;
     private int poolSize;
+    private EventLoopGroup group;
 
     public ZabbixAgentClientFactory(int threadSize, int poolSize) {
-        this.threadSize = threadSize;
         this.poolSize = poolSize;
+        group = new NioEventLoopGroup(threadSize);
     }
 
     public ZabbixAgentClient createClient(InetAddress address, int port) {
-        return new ZabbixAgentClient(threadSize, address, port, poolSize);
+        return new ZabbixAgentClient(group, address, port, poolSize);
     }
 }

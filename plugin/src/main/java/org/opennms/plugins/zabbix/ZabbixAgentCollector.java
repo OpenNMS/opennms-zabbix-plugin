@@ -97,8 +97,6 @@ public class ZabbixAgentCollector implements ServiceCollector {
                 }).get();
             }
 
-
-
             collectionSetBuilder.addCollectionSetResource(nodeResourceBuilder.build());
             future.complete(collectionSetBuilder.build());
         } catch (IOException | NumberFormatException e) {
