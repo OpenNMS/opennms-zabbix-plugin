@@ -14,6 +14,7 @@ public class Template {
     private String name;
     private String description;
 
+    @JsonManagedReference
     private List<Item> items = new LinkedList<>();
 
     @JsonManagedReference

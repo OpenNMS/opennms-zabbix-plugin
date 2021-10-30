@@ -56,6 +56,16 @@
         </bean>
     </service>
 
+    <service interface="org.opennms.integration.api.v1.config.thresholding.ThreshdConfigurationExtension">
+        <bean class="org.opennms.plugins.zabbix.config.ThreshdConfigurationExtension" />
+    </service>
+
+    <service interface="org.opennms.integration.api.v1.config.thresholding.ThresholdingConfigExtension">
+        <bean class="org.opennms.plugins.zabbix.config.ThresholdingConfigExtension">
+            <argument ref="zabbixTemplateHandler" />
+        </bean>
+    </service>
+
     <!-- Lab -->
     <bean id="labContextManager" class="org.opennms.plugins.zabbix.lab.LabContextManager"/>
     <service interface="org.opennms.plugins.zabbix.lab.LabContextManager" ref="labContextManager" />

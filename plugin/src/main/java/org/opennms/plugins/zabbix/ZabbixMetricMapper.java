@@ -6,14 +6,19 @@ import org.opennms.integration.api.v1.collectors.immutables.ImmutableNumericAttr
 import org.opennms.integration.api.v1.collectors.immutables.ImmutableStringAttribute;
 import org.opennms.integration.api.v1.collectors.resource.NumericAttribute;
 import org.opennms.integration.api.v1.collectors.resource.immutables.ImmutableCollectionSetResource;
+import org.opennms.plugins.zabbix.expressions.Constant;
+import org.opennms.plugins.zabbix.expressions.ExpressionParser;
+import org.opennms.plugins.zabbix.expressions.ItemKey;
+import org.opennms.plugins.zabbix.expressions.ParseException;
+import org.opennms.plugins.zabbix.expressions.Term;
 import org.opennms.plugins.zabbix.model.DiscoveryRule;
 import org.opennms.plugins.zabbix.model.Item;
-import org.opennms.plugins.zabbix.model.ZabbixKey;
 
 import com.google.common.base.Strings;
 
 public class ZabbixMetricMapper {
     public static final String DEFAULT_GROUP_NAME = "zabbix";
+    private final ExpressionParser expressionParser = new ExpressionParser();
 
     public NumericAttribute.Type getMetricType(Item item) {
         boolean isChangePerSecond = item.getPreprocessing().stream()
@@ -24,28 +29,40 @@ public class ZabbixMetricMapper {
         return NumericAttribute.Type.GAUGE;
     }
 
-    public String getMetricName(String key) {
-        // parse the key
-        final ZabbixKey zabbixKey = new ZabbixKey(key);
+    public String getMetricName(ItemKey key) {
         // no parameters - use the key directly
-        if (zabbixKey.getParamterCount() < 1) {
-            return zabbixKey.getName();
+        if (key.getParameters().size() < 1) {
+            return key.getName();
         }
         final StringBuilder sb = new StringBuilder();
-        sb.append(zabbixKey.getName());
-        for (String parameter : zabbixKey.getParameters()) {
+        sb.append(key.getName());
+        for (Term term : key.getParameters()) {
+            if (!(term instanceof Constant)) {
+                throw new RuntimeException("Non constant parameters are currently supported! Got: " + term);
+            }
+            final String parmValue = ((Constant) term).getValue();
             // Skip empty parameters
-            if (Strings.isNullOrEmpty(parameter)) {
+            if (Strings.isNullOrEmpty(parmValue)) {
                 continue;
             }
             // Skip parameters with macros
-            if (ZabbixMacroSupport.containsMacro(parameter)) {
+            if (ZabbixMacroSupport.containsMacro(parmValue)) {
                 continue;
             }
             sb.append(".");
-            sb.append(parameter);
+            sb.append(parmValue);
         }
         return sb.toString();
+    }
+
+    public String getMetricName(String key) {
+        synchronized (expressionParser) {
+            try {
+                return getMetricName(expressionParser.parseItem(key));
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     public void addValueToResource(Item item, String value, ImmutableCollectionSetResource.Builder<?> resourceBuilder) {

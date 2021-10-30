@@ -1,5 +1,6 @@
 package org.opennms.plugins.zabbix.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Trigger {
@@ -9,6 +10,8 @@ public class Trigger {
     private String description;
     @JsonProperty("manual_close")
     private String manualClose;
+    @JsonBackReference
+    public Item item;
 
     public String getExpression() {
         return expression;
@@ -48,5 +51,13 @@ public class Trigger {
 
     public void setManualClose(String manualClose) {
         this.manualClose = manualClose;
+    }
+
+    public Item getItem() {
+        return item;
+    }
+
+    public void setItem(Item item) {
+        this.item = item;
     }
 }

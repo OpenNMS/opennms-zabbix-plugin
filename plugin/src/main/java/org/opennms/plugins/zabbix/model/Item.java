@@ -3,11 +3,17 @@ package org.opennms.plugins.zabbix.model;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 public class Item {
     private String name;
     private String key;
     private List<PreprocessingRule> preprocessing = new LinkedList<>();
     private List<Tag> tags = new LinkedList<>();
+    @JsonBackReference
+    public Template template;
+    @JsonManagedReference
     private List<Trigger> triggers = new LinkedList<>();
 
     public String getName() {
@@ -48,5 +54,13 @@ public class Item {
 
     public void setTriggers(List<Trigger> triggers) {
         this.triggers = triggers;
+    }
+
+    public Template getTemplate() {
+        return template;
+    }
+
+    public void setTemplate(Template template) {
+        this.template = template;
     }
 }
