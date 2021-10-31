@@ -11,7 +11,7 @@ import org.opennms.plugins.zabbix.model.Template;
 
 public class ZabbixMetricMapperTest {
 
-    private ZabbixMetricMapper metricMapper = new ZabbixMetricMapper();
+    private final ZabbixMetricMapper metricMapper = new ZabbixMetricMapper();
 
     /**
      *  Item prototype: net.if.out["{#IFNAME}",errors]
@@ -26,7 +26,8 @@ public class ZabbixMetricMapperTest {
         assertThat(metricMapper.getMetricName("system.cpu.util[,iowait]"), equalTo("system.cpu.util.iowait"));
         assertThat(metricMapper.getMetricName("proc.num[,,run]"), equalTo("proc.num.run"));
         assertThat(metricMapper.getMetricName("vfs.file.contents[/sys/block/{#DEVNAME}/stat]"), equalTo("vfs.file.contents"));
-        assertThat(metricMapper.getMetricName("perf_counter_en[\"\\Memory\\Free System Page Table Entries\"]"), equalTo("perf_counter_en.\"\\Memory\\Free System Page Table Entries\""));
+        assertThat(metricMapper.getMetricName("perf_counter_en[\"\\Memory\\Free System Page Table Entries\"]"), equalTo("perf_counter_en.memory.free.system.page.table.entries"));
+        assertThat(metricMapper.getMetricName("perf_counter_en[\"\\Processor Information(_total)\\% Interrupt Time\"]"), equalTo("perf_counter_en.processor.information._total.interrupt.time"));
     }
 
     @Test

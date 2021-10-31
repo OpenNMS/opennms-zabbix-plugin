@@ -35,4 +35,9 @@ public class Array implements Term {
                 .add("parameters=" + parameters)
                 .toString();
     }
+
+    @Override
+    public void visit(TermVisitor visitor) {
+        visitor.visitArray(this);
+    }
 }

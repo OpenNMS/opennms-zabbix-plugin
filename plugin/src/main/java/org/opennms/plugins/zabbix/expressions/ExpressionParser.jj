@@ -120,7 +120,7 @@ Expression Expression() : {
      ( LOOKAHEAD(3)
        rhs=Constant()|rhs=FunctionCall()|(<LPAREN> rhs=Expression() <RPAREN>)
      )
-     {e=new Expression(lhs,op.image,rhs);lhs=e;}
+     {e=new Expression(lhs,new Operator(op.image),rhs);lhs=e;}
    )+
    { return e; }
 }

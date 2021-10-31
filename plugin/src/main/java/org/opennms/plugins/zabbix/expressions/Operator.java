@@ -1,13 +1,12 @@
 package org.opennms.plugins.zabbix.expressions;
 
 import java.util.Objects;
+import java.util.StringJoiner;
 
-import com.google.common.base.MoreObjects;
-
-public class Constant implements Term {
+public class Operator implements Term {
     private final String value;
 
-    public Constant(String value) {
+    public Operator(String value) {
         this.value = Objects.requireNonNull(value);
     }
 
@@ -19,8 +18,8 @@ public class Constant implements Term {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Constant constant = (Constant) o;
-        return Objects.equals(value, constant.value);
+        Operator operator = (Operator) o;
+        return Objects.equals(value, operator.value);
     }
 
     @Override
@@ -30,13 +29,13 @@ public class Constant implements Term {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-                .add("value", value)
+        return new StringJoiner(", ", Operator.class.getSimpleName() + "[", "]")
+                .add("value='" + value + "'")
                 .toString();
     }
 
     @Override
     public void visit(TermVisitor visitor) {
-        visitor.visitConstant(this);
+        visitor.visitOperator(this);
     }
 }

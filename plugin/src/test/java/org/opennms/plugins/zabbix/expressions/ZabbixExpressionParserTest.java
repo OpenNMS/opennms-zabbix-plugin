@@ -87,7 +87,7 @@ public class ZabbixExpressionParserTest {
         FunctionCall fn = (FunctionCall)expression.getLhs();
         assertThat(fn.getName(), equalTo("max"));
         assertThat(fn.getParameters(), contains(new ItemKey("123"), new ItemKey("1")));
-        assertThat(expression.getOperator(), equalTo("+"));
+        assertThat(expression.getOperator(), equalTo(new Operator("+")));
         Constant constant = (Constant)expression.getRhs();
         assertThat(constant.getValue(), equalTo("5"));
 
@@ -97,7 +97,7 @@ public class ZabbixExpressionParserTest {
         assertThat(fn.getParameters(), contains(
                 new HostAndKey("Linux block devices by Zabbix agent", new ItemKey("vfs.dev.read.await", "{#DEVNAME}")),
                 new ItemKey("15m")));
-        assertThat(expression.getOperator(), equalTo(">"));
+        assertThat(expression.getOperator(), equalTo(new Operator(">")));
         constant = (Constant)expression.getRhs();
         assertThat(constant.getValue(), equalTo("{$VFS.DEV.READ.AWAIT.WARN:\"{#DEVNAME}\"}"));
 
@@ -107,7 +107,7 @@ public class ZabbixExpressionParserTest {
         assertThat(fn.getParameters(), contains(
                 new HostAndKey("Linux block devices by Zabbix agent", new ItemKey("vfs.dev.read.await", "{#DEVNAME}")),
                 new ItemKey("15m")));
-        assertThat(expression.getOperator(), equalTo(">"));
+        assertThat(expression.getOperator(), equalTo(new Operator(">")));
         constant = (Constant)expression.getRhs();
         assertThat(constant.getValue(), equalTo("{$VFS.DEV.READ.AWAIT.WARN:\"{#DEVNAME}\"}"));
 
@@ -122,7 +122,7 @@ public class ZabbixExpressionParserTest {
         lhsExression = (Expression)lhsExression.getLhs();
         fn = (FunctionCall)lhsExression.getLhs();
         assertThat(fn.getName(), equalTo("min"));
-        assertThat(expression.getOperator(), equalTo(">"));
+        assertThat(expression.getOperator(), equalTo(new Operator(">")));
         constant = (Constant)expression.getRhs();
         assertThat(constant.getValue(), equalTo("{$VFS.DEV.WRITE.AWAIT.WARN:\"{#DEVNAME}\"}"));
 

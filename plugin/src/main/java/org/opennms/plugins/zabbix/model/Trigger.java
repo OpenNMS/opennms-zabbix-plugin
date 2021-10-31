@@ -10,8 +10,10 @@ public class Trigger {
     private String description;
     @JsonProperty("manual_close")
     private String manualClose;
-    @JsonBackReference
+    @JsonBackReference("item")
     public Item item;
+    @JsonBackReference("rule")
+    public DiscoveryRule discoveryRule;
 
     public String getExpression() {
         return expression;
@@ -59,5 +61,13 @@ public class Trigger {
 
     public void setItem(Item item) {
         this.item = item;
+    }
+
+    public DiscoveryRule getDiscoveryRule() {
+        return discoveryRule;
+    }
+
+    public void setDiscoveryRule(DiscoveryRule discoveryRule) {
+        this.discoveryRule = discoveryRule;
     }
 }

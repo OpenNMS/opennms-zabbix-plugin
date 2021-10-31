@@ -40,4 +40,10 @@ public class HostAndKey implements Term {
                 .add("key=" + key)
                 .toString();
     }
+
+
+    @Override
+    public void visit(TermVisitor visitor) {
+        visitor.visitHostAndKey(this);
+    }
 }

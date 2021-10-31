@@ -2,6 +2,8 @@ package org.opennms.plugins.zabbix.config;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 
 import java.util.List;
@@ -20,6 +22,6 @@ public class ThresholdingConfigExtensionTest {
         assertThat(groupDefinitions, not(empty()));
         GroupDefinition groupDefinition = groupDefinitions.get(0);
         // Ensure there are some expression
-        assertThat(groupDefinition.getExpressions(), not(empty()));
+        assertThat(groupDefinition.getExpressions(), hasSize(greaterThanOrEqualTo(5)));
     }
 }

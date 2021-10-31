@@ -44,4 +44,9 @@ public class FunctionCall implements Term {
                 .add("parameters", parameters)
                 .toString();
     }
+
+    @Override
+    public void visit(TermVisitor visitor) {
+        visitor.visitFunctionCall(this);
+    }
 }

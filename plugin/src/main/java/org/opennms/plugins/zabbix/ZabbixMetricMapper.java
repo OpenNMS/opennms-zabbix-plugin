@@ -34,7 +34,7 @@ public class ZabbixMetricMapper {
         if (key.getParameters().size() < 1) {
             return key.getName();
         }
-        final StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
         sb.append(key.getName());
         for (Term term : key.getParameters()) {
             if (!(term instanceof Constant)) {
@@ -52,7 +52,30 @@ public class ZabbixMetricMapper {
             sb.append(".");
             sb.append(parmValue);
         }
-        return sb.toString();
+        String metricName = sb.toString();
+        metricName = metricName.replaceAll("[^A-Za-z0-9_]", ".");
+
+        // collapse many ... to one .
+        sb = new StringBuilder();
+        boolean lastCharWasDot = false;
+        for (char c : metricName.toCharArray()) {
+            if (c != '.') {
+                sb.append(c);
+                lastCharWasDot = false;
+            } else if (!lastCharWasDot) {
+                sb.append(c);
+                lastCharWasDot = true;
+            } // else, this is another ., skip
+        }
+        metricName = sb.toString();
+
+        metricName = metricName.toLowerCase();
+        // remove trailing .
+        if (metricName.endsWith(".")) {
+            metricName = metricName.substring(0, metricName.length() - 1);
+        }
+
+        return metricName;
     }
 
     public String getMetricName(String key) {

@@ -51,4 +51,9 @@ public class ItemKey implements Term {
                 .add("parameters=" + parameters)
                 .toString();
     }
+
+    @Override
+    public void visit(TermVisitor visitor) {
+        visitor.visitItemKey(this);
+    }
 }

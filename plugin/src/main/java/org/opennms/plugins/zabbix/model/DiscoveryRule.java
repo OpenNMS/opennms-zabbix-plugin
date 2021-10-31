@@ -4,6 +4,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class DiscoveryRule {
@@ -15,6 +16,7 @@ public class DiscoveryRule {
     private Filter filter;
     @JsonBackReference
     public Template template;
+    @JsonManagedReference("rule")
     @JsonProperty("trigger_prototypes")
     private List<Trigger> triggerPrototypes = new LinkedList<>();
     @JsonProperty("graph_prototypes")

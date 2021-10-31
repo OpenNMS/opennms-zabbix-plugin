@@ -6,7 +6,7 @@ import java.util.StringJoiner;
 public class Expression implements Term {
 
     private final Term lhs, rhs;
-    private final String operator;
+    private final Operator operator;
 
     public Expression(Term lhs) {
         this.lhs = Objects.requireNonNull(lhs);
@@ -14,7 +14,7 @@ public class Expression implements Term {
         this.rhs = null;
     }
 
-    public Expression(Term lhs, String operator, Term rhs) {
+    public Expression(Term lhs, Operator operator, Term rhs) {
         this.lhs = Objects.requireNonNull(lhs);
         this.operator = operator;
         this.rhs = rhs;
@@ -28,7 +28,7 @@ public class Expression implements Term {
         return rhs;
     }
 
-    public String getOperator() {
+    public Operator getOperator() {
         return operator;
     }
 
@@ -52,5 +52,10 @@ public class Expression implements Term {
                 .add("rhs=" + rhs)
                 .add("operator='" + operator + "'")
                 .toString();
+    }
+
+    @Override
+    public void visit(TermVisitor visitor) {
+        visitor.visitExpression(this);
     }
 }

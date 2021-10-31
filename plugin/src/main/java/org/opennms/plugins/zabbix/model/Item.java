@@ -13,7 +13,7 @@ public class Item {
     private List<Tag> tags = new LinkedList<>();
     @JsonBackReference
     public Template template;
-    @JsonManagedReference
+    @JsonManagedReference("item")
     private List<Trigger> triggers = new LinkedList<>();
 
     public String getName() {
