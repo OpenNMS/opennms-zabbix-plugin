@@ -1,7 +1,6 @@
 package org.opennms.plugins.zabbix;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Collections;
 import java.util.List;
@@ -56,7 +55,7 @@ public class ZabbixAgentClient implements Closeable {
 
         channelPool = new FixedChannelPool(bootstrap, new AbstractChannelPoolHandler() {
             @Override
-            public void channelCreated(Channel channel) throws Exception {
+            public void channelCreated(Channel channel) {
                 ChannelPipeline pipeline = channel.pipeline();
                 pipeline.addLast("encoder", new ClientRequestEncoder())
                         .addLast("decoder", new ClientResponseDecoder())
@@ -88,14 +87,11 @@ public class ZabbixAgentClient implements Closeable {
     public CompletableFuture<String> retrieveData(String key) {
         CompletableFuture<String> future = new CompletableFuture<>();
         Future<Channel> channelFuture = channelPool.acquire();
-        channelFuture.addListener(new FutureListener<Channel>() {
-            @Override
-            public void operationComplete(Future<Channel> f) {
-                if (f.isSuccess()) {
-                    Channel channel = f.getNow();
-                    channel.attr(FUTURE).set(future);
-                    channel.writeAndFlush(key, channel.voidPromise());
-                }
+        channelFuture.addListener((FutureListener<Channel>) f -> {
+            if (f.isSuccess()) {
+                Channel channel = f.getNow();
+                channel.attr(FUTURE).set(future);
+                channel.writeAndFlush(key, channel.voidPromise());
             }
         });
         return future;
