@@ -45,20 +45,17 @@ public class ZabbixAgentCollector implements ServiceCollector {
 
     @Override
     public CompletableFuture<CollectionSet> collect(CollectionRequest collectionRequest, Map<String, Object> map) {
-        final CompletableFuture<CollectionSet> future = new CompletableFuture<>();
-
+        CompletableFuture<CollectionSet> future = new CompletableFuture<>();
         int port = ZabbixAgentClient.DEFAULT_PORT;
-        if(map.containsKey(PORT_KEY)) {
+        if (map.containsKey(PORT_KEY)) {
             try {
                 port = Integer.parseInt(map.get(PORT_KEY).toString());
             } catch (NumberFormatException e) {
                 LOG.error("Invalid port '{}', using default: {}", map.get(PORT_KEY), port);
             }
         }
-
         int nodeId = Integer.parseInt((String) map.get(ZabbixAgentCollectorFactory.NODE_ID_KEY));
         List<Template> templates = (List<Template>) map.get(ZabbixAgentCollectorFactory.TEMPLATES_KEY);
-
         try {
             ZabbixAgentClient client = clientFactory.createClient(collectionRequest.getAddress(), port);
             NodeResource nodeResource = ImmutableNodeResource.newBuilder().setNodeId(nodeId).build();
@@ -67,36 +64,29 @@ public class ZabbixAgentCollector implements ServiceCollector {
             ImmutableCollectionSet.Builder collectionSetBuilder = ImmutableCollectionSet.newBuilder()
                     .setTimestamp(System.currentTimeMillis())
                     .setStatus(CollectionSet.Status.SUCCEEDED);
-
             // Process the template
-            List<CompletableFuture<Void>> futureList = new ArrayList<>();
+            List<CompletableFuture<Void>> topList = new ArrayList<>();
             for (Template template : templates) {
+                List<CompletableFuture<Void>> templateFutures = new ArrayList<>();
                 LOG.debug("Processing template with name: {}", template.getName());
-                processItems(client, null, template.getItems(), nodeResourceBuilder).thenRunAsync(() -> {
-                    final ZabbixResourceTypeGenerator resourceTypeGenerator = new ZabbixResourceTypeGenerator();
-                    List<CompletableFuture<Void>> ruleFutureList = new ArrayList<>();
-                    for (DiscoveryRule rule : template.getDiscoveryRules()) {
-                        try {
-                            ruleFutureList.add(client.discoverData(rule.getKey())
-                                    .thenAccept(list -> {
-                                        try {
-                                            processEntries(client, rule, list, collectionSetBuilder, nodeResource, resourceTypeGenerator);
-                                        } catch (IOException e) {
-                                            e.printStackTrace();
-                                        }
-                                    }));
-                        } catch (ZabbixNotSupportedException | IOException e) {
-                            // pass
-                        }
-                    }
+                templateFutures.add(processItems(client, null, template.getItems(), nodeResourceBuilder));
+                final ZabbixResourceTypeGenerator resourceTypeGenerator = new ZabbixResourceTypeGenerator();
+                for (DiscoveryRule rule : template.getDiscoveryRules()) {
                     try {
-                        CompletableFuture.allOf(ruleFutureList.toArray(new CompletableFuture[ruleFutureList.size()])).get();
-                    } catch (InterruptedException | ExecutionException e) {
-                        e.printStackTrace();
+                        templateFutures.add(client.discoverData(rule.getKey())
+                                .thenAccept(list -> {
+                                    try {
+                                        processEntries(client, rule, list, collectionSetBuilder, nodeResource, resourceTypeGenerator);
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }
+                                }));
+                    } catch (ZabbixNotSupportedException | IOException e) {
+                        // pass
                     }
-                }).get();
+                }
+                CompletableFuture.allOf(templateFutures.toArray(new CompletableFuture[0])).get();
             }
-
             collectionSetBuilder.addCollectionSetResource(nodeResourceBuilder.build());
             future.complete(collectionSetBuilder.build());
         } catch (IOException | NumberFormatException e) {
@@ -114,7 +104,7 @@ public class ZabbixAgentCollector implements ServiceCollector {
         for (Item item : items) {
             futureList.add(client.retrieveData(item.getKey()).thenAcceptAsync(value -> addValueToMapper(rule, item, value, resourceBuilder)));
         }
-        return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[futureList.size()]));
+        return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0]));
     }
 
     private CompletableFuture<Void> processEntries(ZabbixAgentClient client, DiscoveryRule rule, List<Map<String, Object>> entries,
@@ -131,18 +121,17 @@ public class ZabbixAgentCollector implements ServiceCollector {
                             .build());
 
             // Process the items in the rule
-            boolean didAddAttribute = false;
-            futureList.add(processItems(client, rule, rule.getItemPrototypes(), resourceBuilder).thenRunAsync(() ->{
-                if(rule.getItemPrototypes().size() > 0) {
+            futureList.add(processItems(client, rule, rule.getItemPrototypes(), resourceBuilder).thenRunAsync(() -> {
+                if (rule.getItemPrototypes().size() > 0) {
                     collectionSetBuilder.addCollectionSetResource(resourceBuilder.build());
                 }
             }));
         }
-        return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[futureList.size()]));
+        return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0]));
     }
 
     private void addValueToMapper(DiscoveryRule rule, Item item, String value, ImmutableCollectionSetResource.Builder<?> resourceBuilder) {
-        if(value.startsWith(ZabbixAgentClient.UNSUPPORTED_HEADER)) {
+        if (value.startsWith(ZabbixAgentClient.UNSUPPORTED_HEADER)) {
             LOG.error("{} <> {}", item.getKey(), value);
         } else {
             metricMapper.addValueToResource(rule, item, value, resourceBuilder);

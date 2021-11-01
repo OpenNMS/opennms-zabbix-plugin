@@ -26,8 +26,6 @@ public class ZabbixAgentCollectorTest {
 
     @Rule
     public MockZabbixAgent zabbixAgent = new MockZabbixAgent();
-    private int threadSize = 10;
-    private int poolSize = 50;
 
     @Test
     public void canCollectCpuDetails() throws ExecutionException, InterruptedException, TimeoutException {
@@ -38,7 +36,7 @@ public class ZabbixAgentCollectorTest {
         ZabbixTemplateHandler zabbixTemplateHandler = new ZabbixTemplateHandler();
         TemplateResolver templateResolver = mock(TemplateResolver.class);
         when(templateResolver.getTemplatesForNode(null)).thenReturn(zabbixTemplateHandler.getTemplates());
-        ZabbixAgentClientFactory clientFactory =new ZabbixAgentClientFactory(threadSize, poolSize);
+        ZabbixAgentClientFactory clientFactory =new ZabbixAgentClientFactory();
         ZabbixAgentCollectorFactory zabbixAgentCollectorFactory = new ZabbixAgentCollectorFactory(nodeDao, templateResolver);
         zabbixAgentCollectorFactory.setClientFactory(clientFactory);
         Map<String, Object> runtimeAttributes = zabbixAgentCollectorFactory.getRuntimeAttributes(request);
