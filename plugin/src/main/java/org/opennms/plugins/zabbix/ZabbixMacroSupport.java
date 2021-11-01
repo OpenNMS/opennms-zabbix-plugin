@@ -1,10 +1,10 @@
 package org.opennms.plugins.zabbix;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -14,10 +14,19 @@ import com.google.common.base.Strings;
 
 /**
  * Misc. functions for dealing with Zabbix macros.
+ *
+ * Quick macro reference:
+ *   General: {MACRO}
+ *   User macro: {$MACRO}
+ *   Low level discovery macro: {#MACRO}
+ *   Macros with context: {$MACRO:"static text"}
+ *   Macros with regular expressions: {$MACRO:regex:"regular expression"}
+ *   Macros with functions: {{#IFALIAS}.regsub("(.*)_([0-9]+)", \1)}
+ *
  */
 public class ZabbixMacroSupport {
 
-    private static final Pattern GENERIC_MACRO_PATTERN = Pattern.compile("\\{.+}");
+    private static final Pattern GENERIC_MACRO_PATTERN = Pattern.compile("\\{(.+)}");
 
     private static final Pattern MACRO_FIND_PATTERN = Pattern.compile("(\\{#([^{]*?)\\})");
 
@@ -78,12 +87,11 @@ public class ZabbixMacroSupport {
     }
 
     public static String evaluateMacro(String value, List<Macro> macros) {
+        final LinkedHashMap<String, Object> macroMap = new LinkedHashMap<>();
         for (Macro macro : macros) {
-            if (Objects.equals(value, macro.getMacro())) {
-                return macro.getValue();
-            }
+            macroMap.put(macro.getMacro(), macro.getValue());
         }
-        return value;
+        return evaluateMacro(value, macroMap);
     }
 
     public static String evaluateMacro(String value, Map<String, Object> entry) {
@@ -92,17 +100,32 @@ public class ZabbixMacroSupport {
             return value;
         }
 
-        final Matcher m = MACRO_FIND_PATTERN.matcher(value);
+        // FIXME: HACKZ: {$VFS.DEV.READ.AWAIT.WARN:"{#DEVNAME}"} -> {$VFS.DEV.READ.AWAIT.WARN}
+        value = value.replaceAll(":\\\"\\{#.+}\\\"", "");
+
+        final Matcher m = GENERIC_MACRO_PATTERN.matcher(value);
         final StringBuilder sb = new StringBuilder();
         int offset = 0;
 
         while (m.find()) {
             // copy characters between offset and start
             sb.append(value, offset, m.start());
-            // replace
-            sb.append(entry.getOrDefault(m.group(1), ""));
+
+            final String innerMacro = m.group(1);
+            final String outerMacro = m.group(0);
+            if (innerMacro.startsWith("#")) {
+                // replace
+                if (entry.containsKey(innerMacro)) {
+                    sb.append(entry.get(innerMacro));
+                } else {
+                    sb.append(entry.getOrDefault(outerMacro, ""));
+                }
+            } else {
+                sb.append(entry.getOrDefault(outerMacro, ""));
+            }
             offset = m.end();
         }
+
         // copy remaining characters
         sb.append(value, offset, value.length());
         return sb.toString();

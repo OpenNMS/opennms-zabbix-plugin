@@ -21,7 +21,8 @@ public class ThresholdingConfigExtensionTest {
         List<GroupDefinition> groupDefinitions = thresholdingConfigExtension.getGroupDefinitions();
         assertThat(groupDefinitions, not(empty()));
         GroupDefinition groupDefinition = groupDefinitions.get(0);
-        // Ensure there are some expression
-        assertThat(groupDefinition.getExpressions(), hasSize(greaterThanOrEqualTo(5)));
+        // Ensure there are some expression supported
+        // We expect the number of supported expressions to increase over time
+        assertThat(groupDefinition.getExpressions(), hasSize(greaterThanOrEqualTo(11)));
     }
 }

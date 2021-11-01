@@ -24,9 +24,15 @@ public class ZabbixMacroSupportTest {
     }
 
     @Test
-    public void canEvaluateMacroWithContext() {
+    public void canEvaluateMacros() {
         assertThat(ZabbixMacroSupport.evaluateMacro("{#FSNAME}!",
                 ImmutableMap.of("{#FSNAME}", "oops")), equalTo("oops!"));
+    }
+
+    @Test
+    public void canEvaluateMacroWithContext() {
+        assertThat(ZabbixMacroSupport.evaluateMacro("{$VFS.DEV.READ.AWAIT.WARN:\"{#DEVNAME}\"}",
+                ImmutableMap.of("{$VFS.DEV.READ.AWAIT.WARN}", "20")), equalTo("20"));
     }
 
     @Test

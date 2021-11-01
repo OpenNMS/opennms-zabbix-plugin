@@ -87,7 +87,7 @@ public class ZabbixThresholdExpressionGenerator {
 
         @Override
         public void visitFunctionCall(FunctionCall fn) {
-            if (!"max".equals(fn.getName()) && !"min".equals(fn.getName())) {
+            if (!"max".equals(fn.getName()) && !"min".equals(fn.getName()) && !"last".equals(fn.getName())) {
                 throw new ExpressionNotSupportedException("Unsupported function call: " + fn.getName());
             }
             if (fn.getParameters().size() != 2) {
@@ -101,9 +101,6 @@ public class ZabbixThresholdExpressionGenerator {
             }
 
             HostAndKey hostAndKey = (HostAndKey)fn.getParameters().get(0);
-            if (hostAndKey.getKey().getParameters().size() != 1) {
-                throw new ExpressionNotSupportedException("key must have 1 param: " + hostAndKey.getKey().getParameters());
-            }
             stack.add(hostAndKey.getKey());
 
             // FIXME: Should be able to derive the 'trigger' value from this
@@ -139,17 +136,26 @@ public class ZabbixThresholdExpressionGenerator {
     }
 
     private String getExpression(List<Term> stack, int offset, List<Macro> macros) {
-        ItemKey key = (ItemKey)stack.get(offset);
-        Operator op = (Operator)stack.get(1 + offset);
-        Constant constant = (Constant)stack.get(2 + offset);
+        final ItemKey key;
+        final Operator op;
+        final Constant constant;
+
+        try {
+            key = (ItemKey)stack.get(offset);
+            op = (Operator)stack.get(1 + offset);
+            constant = (Constant)stack.get(2 + offset);
+        } catch (ClassCastException c) {
+            throw new ExpressionNotSupportedException("unexpected attributes on stack: " + stack, c);
+        }
 
         // rhsConstant is {$MEM.PAGE_TABLE_CRIT.MIN}
         // defined in macro with a default value of 5000 on the 'Windows memory by Zabbix agent' template
         double value = Double.NaN;
-        for (Macro macro : macros) {
-            if (constant.getValue().equals(macro.getMacro())) {
-                value = Double.parseDouble(macro.getValue());
-            }
+        try {
+            value = Double.parseDouble(ZabbixMacroSupport.evaluateMacro(constant.getValue(), macros));
+        } catch (NumberFormatException e) {
+            throw new ExpressionNotSupportedException("constant does not evaluate to double: "
+                    + constant.getValue() + " with macros: " + macros, e);
         }
 
         ZabbixMetricMapper zabbixMetricMapper = new ZabbixMetricMapper();

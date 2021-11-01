@@ -21,6 +21,18 @@ This indexed is used to build a "generic resource" with the name of the discover
 
 Multiple macros are not currently supported.
 
+## Macros
+
+Zabbix support many forms of macros that look like:
+* General: `{MACRO}`
+* Low level discovery macro: `{#MACRO}`
+* User macro: `{$MACRO}`
+* User macro with context: `{$MACRO:"static text"}`
+* User macro with regular expressions: `{$MACRO:regex:"regular expression"}`
+* Macro with functions: `{{#IFALIAS}.regsub("(.*)_([0-9]+)", \1)}`
+
+Support for macros is currently quite limited.
+
 ## Building
 
 Build and install the plugin into your local Maven repository using:

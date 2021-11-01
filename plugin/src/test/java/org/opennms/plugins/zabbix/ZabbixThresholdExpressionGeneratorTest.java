@@ -8,8 +8,6 @@ import static org.hamcrest.Matchers.empty;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.junit.Test;
 import org.opennms.integration.api.v1.config.thresholding.Expression;
@@ -59,12 +57,13 @@ public class ZabbixThresholdExpressionGeneratorTest {
         trigger.setDescription("This trigger might indicate disk {#DEVNAME} saturation.");
         trigger.setItem(item);
 
+        // FIXME: Macro in expression refers to: {$VFS.DEV.READ.AWAIT.WARN:"{#DEVNAME}"}
         Macro readAwait = new Macro();
-        readAwait.setMacro("{$VFS.DEV.READ.AWAIT.WARN:\"{#DEVNAME}\"}");
+        readAwait.setMacro("{$VFS.DEV.READ.AWAIT.WARN}");
         readAwait.setValue("5");
 
         Macro writeAwait = new Macro();
-        writeAwait.setMacro("{$VFS.DEV.WRITE.AWAIT.WARN:\"{#DEVNAME}\"}");
+        writeAwait.setMacro("{$VFS.DEV.WRITE.AWAIT.WARN}");
         writeAwait.setValue("6");
         template.setMacros(Arrays.asList(readAwait, writeAwait));
 
@@ -83,18 +82,12 @@ public class ZabbixThresholdExpressionGeneratorTest {
     }
 
     @Test
-    public void canGenerateExpressions() {
+    public void canGenerateExpressionsFromTemplates() {
         // Make sure at least one can parse to an expression
-        List<ZabbixThresholdExpressionGenerator.ZabbixThresholdingExpression> expressions = zabbixTemplateHandler.getTemplates().stream()
-                .flatMap(t -> t.getItems().stream())
-                .flatMap(r -> r.getTriggers().stream())
-                .map(zabbixThresholdExpressionGenerator::tryToParse)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toList());
+        List<Expression> expressions = zabbixThresholdExpressionGenerator.getThresholdingExpressions();
         assertThat(expressions, not(empty()));
 
-        ZabbixThresholdExpressionGenerator.ZabbixThresholdingExpression expression = expressions.stream()
+        Expression expression = expressions.stream()
                         .filter(t -> "The Memory Free System Page Table Entries is less than {$MEM.PAGE_TABLE_CRIT.MIN} for 5 minutes. If the number is less than 5,000, there may well be a memory leak.".equals(t.getDescription().get()))
                                 .findFirst().orElseThrow(() -> new RuntimeException("expected expression not found"));
         assertThat(expression.getType(), equalTo(ThresholdType.HIGH));
@@ -103,5 +96,15 @@ public class ZabbixThresholdExpressionGeneratorTest {
         assertThat(expression.getRearm(), equalTo(0.0d));
         assertThat(expression.getTrigger(), equalTo(1));
         assertThat(expression.getExpression(), equalTo("(datasources['perf_counter_en.memory.free.system.page.table.entries'] < 5000.00) ? 1 : 0"));
+
+        expression = expressions.stream()
+                .filter(t -> "This trigger might indicate disk {#DEVNAME} saturation.".equals(t.getDescription().get()))
+                .findFirst().orElseThrow(() -> new RuntimeException("expected expression not found"));
+        assertThat(expression.getType(), equalTo(ThresholdType.HIGH));
+        assertThat(expression.getDsType(), equalTo("vfs.dev.discovery"));
+        assertThat(expression.getValue(), equalTo(1.0d));
+        assertThat(expression.getRearm(), equalTo(0.0d));
+        assertThat(expression.getTrigger(), equalTo(1));
+        assertThat(expression.getExpression(), equalTo("((datasources['vfs.dev.read.await'] > 20.00) ? 1 : 0) + ((datasources['vfs.dev.write.await'] > 20.00) ? 1 : 0)"));
     }
 }
