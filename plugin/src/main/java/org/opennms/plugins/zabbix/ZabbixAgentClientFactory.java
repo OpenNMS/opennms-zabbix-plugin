@@ -46,8 +46,7 @@ public class ZabbixAgentClientFactory {
     private EventLoopGroup group;
 
     public ZabbixAgentClientFactory() {
-        this.poolSize = DEFAULT_POOL_SIZE;
-        group = new NioEventLoopGroup(DEFAULT_THREAD_SIZE);
+        this(DEFAULT_THREAD_SIZE, DEFAULT_POOL_SIZE);
     }
 
     public ZabbixAgentClientFactory(int threadSize, int poolSize) {
