@@ -30,23 +30,13 @@ package org.opennms.plugins.zabbix.utils;
 
 import java.nio.charset.StandardCharsets;
 
-import org.opennms.plugins.zabbix.ZabbixNotSupportedException;
-
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.MessageToByteEncoder;
 
-public class MessageCodec {
-    private static final int HEADER_LENGTH = 13;
-    public static String decode(ByteBuf data) {
-        validateData(data);
-        //ignore header and padding
-        data.readBytes(13);
-        int size = data.readableBytes();
-        String msg =data.readCharSequence(size, StandardCharsets.UTF_8).toString();
-        return msg;
-    }
-
-    public static ByteBuf encode(String msg) {
+public class ClientRequestEncoder extends MessageToByteEncoder<String> {
+    @Override
+    protected void encode(ChannelHandlerContext channelHandlerContext, String msg, ByteBuf out) throws Exception {
         byte[] data = msg.getBytes(StandardCharsets.UTF_8);
         byte[] header = new byte[] {
                 'Z', 'B', 'X', 'D', '\1',
@@ -54,15 +44,8 @@ public class MessageCodec {
                 (byte)((data.length >> 8) & 0xFF),
                 (byte)((data.length >> 16) & 0xFF),
                 (byte)((data.length >> 24) & 0xFF),
-                '\0', '\0', '\0', '\0'};        byte[] packet = new byte[header.length + data.length];
-        System.arraycopy(header, 0, packet, 0, header.length);
-        System.arraycopy(data, 0, packet, header.length, data.length);
-        return Unpooled.copiedBuffer(packet);
-    }
-
-    public static void validateData(ByteBuf data) {
-        if(data.readableBytes() <= HEADER_LENGTH) {
-            throw new ZabbixNotSupportedException("Invalid message from Zabbix agent.");
-        }
+                '\0', '\0', '\0', '\0'};
+        out.writeBytes(header);
+        out.writeBytes(data);
     }
 }

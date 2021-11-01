@@ -3,6 +3,7 @@ package org.opennms.plugins.zabbix;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -18,13 +20,16 @@ public class ZabbixAgentClientTest {
 
     @Rule
     public MockZabbixAgent zabbixAgent = new MockZabbixAgent();
-    private static int threadSize = 4;
-    private static int poolSize = 4;
+    public static ZabbixAgentClientFactory clientFactory;
 
+    @BeforeClass
+    public static void setup() {
+        clientFactory = new ZabbixAgentClientFactory();
+    }
 
     @Test
     public void canQueryLocalAgent() throws IOException, ExecutionException, InterruptedException {
-        try (ZabbixAgentClient client = new ZabbixAgentClient(threadSize, zabbixAgent.getAddress(), zabbixAgent.getPort(), poolSize)) {
+        try (ZabbixAgentClient client = clientFactory.createClient(zabbixAgent.getAddress(), zabbixAgent.getPort())) {
             List<Map<String, Object>> data = client.discoverData("vfs.fs.discovery").get();
             assertThat(data, not(empty()));
         }
@@ -32,9 +37,17 @@ public class ZabbixAgentClientTest {
 
     @Test
     public void testRetrieveDataLocalAgent() throws IOException, ExecutionException, InterruptedException {
-        try (ZabbixAgentClient client = new ZabbixAgentClient(threadSize, zabbixAgent.getAddress(), zabbixAgent.getPort(), poolSize)) {
+        try (ZabbixAgentClient client = clientFactory.createClient(zabbixAgent.getAddress(), zabbixAgent.getPort())) {
             String result = client.retrieveData("vfs.fs.discovery").get();
             assertThat(result, notNullValue());
+        }
+    }
+
+    @Test
+    public void testRetrieveUnSupport() throws IOException, ExecutionException, InterruptedException {
+        try (ZabbixAgentClient client = clientFactory.createClient(zabbixAgent.getAddress(), zabbixAgent.getPort())) {
+            String result = client.retrieveData("some-bad-key").get();
+            assertThat(result, startsWith(ZabbixAgentClient.UNSUPPORTED_HEADER));
         }
     }
 

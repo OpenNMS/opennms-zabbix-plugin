@@ -26,36 +26,31 @@
  *     http://www.opennms.com/
  *******************************************************************************/
 
-package org.opennms.plugins.zabbix;
+package org.opennms.plugins.zabbix.utils;
 
-import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.opennms.plugins.zabbix.ZabbixNotSupportedException;
 
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.ByteToMessageDecoder;
 
-public class ZabbixAgentClientFactory {
-    private static final Logger LOG = LoggerFactory.getLogger(ZabbixAgentClientFactory.class);
-
-    private static int DEFAULT_THREAD_SIZE = 30;
-    private static int DEFAULT_POOL_SIZE = 80;
-
-    private int poolSize;
-    private EventLoopGroup group;
-
-    public ZabbixAgentClientFactory() {
-        this.poolSize = DEFAULT_POOL_SIZE;
-        group = new NioEventLoopGroup(DEFAULT_THREAD_SIZE);
+public class ClientResponseDecoder extends ByteToMessageDecoder {
+    private static final int HEADER_LENGTH = 13;
+    @Override
+    protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf data, List<Object> list) throws Exception {
+        validateData(data);
+        data.readBytes(HEADER_LENGTH);
+        int size = data.readableBytes();
+        String msg = data.readCharSequence(size, StandardCharsets.UTF_8).toString();
+        list.add(msg);
     }
 
-    public ZabbixAgentClientFactory(int threadSize, int poolSize) {
-        this.poolSize = poolSize;
-        group = new NioEventLoopGroup(threadSize);
-    }
-
-    public ZabbixAgentClient createClient(InetAddress address, int port) {
-        return new ZabbixAgentClient(group, address, port, poolSize);
+    private void validateData(ByteBuf data) {
+        if(data.readableBytes() <= HEADER_LENGTH) {
+            throw new ZabbixNotSupportedException("Invalid message from Zabbix agent.");
+        }
     }
 }
