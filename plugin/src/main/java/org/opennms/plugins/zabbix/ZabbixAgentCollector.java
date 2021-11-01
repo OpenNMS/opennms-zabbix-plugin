@@ -1,11 +1,9 @@
 package org.opennms.plugins.zabbix;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import org.opennms.integration.api.v1.collectors.CollectionRequest;
 import org.opennms.integration.api.v1.collectors.CollectionSet;
@@ -65,23 +63,16 @@ public class ZabbixAgentCollector implements ServiceCollector {
                     .setTimestamp(System.currentTimeMillis())
                     .setStatus(CollectionSet.Status.SUCCEEDED);
             // Process the template
-            List<CompletableFuture<Void>> topList = new ArrayList<>();
             for (Template template : templates) {
-                List<CompletableFuture<Void>> templateFutures = new ArrayList<>();
+                List<CompletableFuture<? extends Object>> templateFutures = new ArrayList<>();
                 LOG.debug("Processing template with name: {}", template.getName());
                 templateFutures.add(processItems(client, null, template.getItems(), nodeResourceBuilder));
                 final ZabbixResourceTypeGenerator resourceTypeGenerator = new ZabbixResourceTypeGenerator();
                 for (DiscoveryRule rule : template.getDiscoveryRules()) {
                     try {
                         templateFutures.add(client.discoverData(rule.getKey())
-                                .thenAccept(list -> {
-                                    try {
-                                        processEntries(client, rule, list, collectionSetBuilder, nodeResource, resourceTypeGenerator);
-                                    } catch (IOException e) {
-                                        e.printStackTrace();
-                                    }
-                                }));
-                    } catch (ZabbixNotSupportedException | IOException e) {
+                                .thenApply(list -> processEntries(client, rule, list, collectionSetBuilder, nodeResource, resourceTypeGenerator)));
+                    } catch (ZabbixNotSupportedException e) {
                         // pass
                     }
                 }
@@ -89,7 +80,7 @@ public class ZabbixAgentCollector implements ServiceCollector {
             }
             collectionSetBuilder.addCollectionSetResource(nodeResourceBuilder.build());
             future.complete(collectionSetBuilder.build());
-        } catch (IOException | NumberFormatException e) {
+        } catch (NumberFormatException e) {
             future.completeExceptionally(e);
         } catch (Exception e) {
             LOG.error("Error during collection for request: {}", collectionRequest, e);
@@ -99,7 +90,7 @@ public class ZabbixAgentCollector implements ServiceCollector {
     }
 
 
-    private CompletableFuture<Void> processItems(ZabbixAgentClient client, DiscoveryRule rule, List<Item> items, ImmutableCollectionSetResource.Builder<?> resourceBuilder) throws IOException {
+    private CompletableFuture<Void> processItems(ZabbixAgentClient client, DiscoveryRule rule, List<Item> items, ImmutableCollectionSetResource.Builder<?> resourceBuilder) {
         List<CompletableFuture<Void>> futureList = new ArrayList<>();
         for (Item item : items) {
             futureList.add(client.retrieveData(item.getKey()).thenAcceptAsync(value -> addValueToMapper(rule, item, value, resourceBuilder)));
@@ -108,7 +99,7 @@ public class ZabbixAgentCollector implements ServiceCollector {
     }
 
     private CompletableFuture<Void> processEntries(ZabbixAgentClient client, DiscoveryRule rule, List<Map<String, Object>> entries,
-                                                   ImmutableCollectionSet.Builder collectionSetBuilder, NodeResource nodeResource, ZabbixResourceTypeGenerator resourceTypeGenerator) throws IOException {
+                                                   ImmutableCollectionSet.Builder collectionSetBuilder, NodeResource nodeResource, ZabbixResourceTypeGenerator resourceTypeGenerator) {
         List<CompletableFuture<Void>> futureList = new ArrayList<>();
         final ResourceType resourceType = resourceTypeGenerator.getResourceTypeFor(rule);
         for (Map<String, Object> entry : entries) {

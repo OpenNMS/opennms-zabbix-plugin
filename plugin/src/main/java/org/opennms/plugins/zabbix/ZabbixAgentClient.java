@@ -65,7 +65,7 @@ public class ZabbixAgentClient implements Closeable {
         }, maxConnection);
     }
 
-    public CompletableFuture<List<Map<String, Object>>> discoverData(String key) throws IOException {
+    public CompletableFuture<List<Map<String, Object>>> discoverData(String key) {
         return  retrieveData(key).thenApplyAsync(data -> {
             ObjectMapper mapper = new ObjectMapper();
             // FIXME: Not sure if all discovery rule keys follow the same format
@@ -85,12 +85,12 @@ public class ZabbixAgentClient implements Closeable {
 
     }
 
-    public CompletableFuture<String> retrieveData(String key) throws IOException, ZabbixNotSupportedException {
+    public CompletableFuture<String> retrieveData(String key) {
         CompletableFuture<String> future = new CompletableFuture<>();
         Future<Channel> channelFuture = channelPool.acquire();
         channelFuture.addListener(new FutureListener<Channel>() {
             @Override
-            public void operationComplete(Future<Channel> f) throws Exception {
+            public void operationComplete(Future<Channel> f) {
                 if (f.isSuccess()) {
                     Channel channel = f.getNow();
                     channel.attr(FUTURE).set(future);
@@ -117,14 +117,14 @@ public class ZabbixAgentClient implements Closeable {
         }
 
         @Override
-        public void channelRead(ChannelHandlerContext ctx, Object in) throws Exception {
+        public void channelRead(ChannelHandlerContext ctx, Object in) {
             String msg = (String) in;
             sb.append(msg);
             pool.release(ctx.channel());
         }
 
         @Override
-        public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+        public void channelReadComplete(ChannelHandlerContext ctx) {
             Attribute<CompletableFuture<String>> futureAttribute = ctx.channel().attr(FUTURE);
             CompletableFuture<String> future = futureAttribute.getAndSet(new CompletableFuture<>());
             future.complete(sb.toString());
