@@ -1,6 +1,5 @@
 package org.opennms.plugins.zabbix;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -117,7 +116,7 @@ public class ZabbixAgentCollector implements ServiceCollector {
 
     private void addValueToMapper(DiscoveryRule rule, Item item, String value, ImmutableCollectionSetResource.Builder<?> resourceBuilder) {
         if(value.startsWith(ZabbixAgentClient.UNSUPPORTED_HEADER)) {
-            LOG.error("{} <> {}", item.getKey(), value);
+            LOG.info("{} <> {}", item.getKey(), value);
         } else {
             metricMapper.addValueToResource(rule, item, value, resourceBuilder);
         }
