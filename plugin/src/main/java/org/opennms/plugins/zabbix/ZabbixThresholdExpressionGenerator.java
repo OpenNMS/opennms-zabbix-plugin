@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.opennms.integration.api.v1.config.datacollection.ResourceType;
 import org.opennms.integration.api.v1.config.thresholding.Expression;
 import org.opennms.integration.api.v1.config.thresholding.FilterOperator;
 import org.opennms.integration.api.v1.config.thresholding.ResourceFilter;
@@ -238,7 +239,7 @@ public class ZabbixThresholdExpressionGenerator {
         @Override
         public String getDsType() {
             if (trigger.getDiscoveryRule() != null) {
-               return trigger.getDiscoveryRule().getKey();
+                return ZabbixResourceTypeGenerator.sanitizeResourceName(trigger.getDiscoveryRule().getKey());
             }
             return "node";
         }

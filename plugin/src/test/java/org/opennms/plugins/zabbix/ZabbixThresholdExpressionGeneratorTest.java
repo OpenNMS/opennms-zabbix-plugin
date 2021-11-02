@@ -72,7 +72,7 @@ public class ZabbixThresholdExpressionGeneratorTest {
         threshExpression = zabbixThresholdExpressionGenerator.parse(trigger);
         assertThat(threshExpression.getExpression(), equalTo("((datasources['vfs_dev_read_await'] > 5.00) ? 1 : 0) " +
                 "+ ((datasources['vfs_dev_write_await'] > 6.00) ? 1 : 0)"));
-        assertThat(threshExpression.getDsType(), equalTo("vfs.dev.discovery"));
+        assertThat(threshExpression.getDsType(), equalTo("vfsdevdiscovery"));
         assertThat(threshExpression.getTrigger(), equalTo(1));
         assertThat(threshExpression.getRearm(), equalTo(0.0d));
         assertThat(threshExpression.getValue(), equalTo(1.0d));
@@ -99,7 +99,7 @@ public class ZabbixThresholdExpressionGeneratorTest {
                 .filter(t -> "This trigger might indicate disk {#DEVNAME} saturation.".equals(t.getDescription().get()))
                 .findFirst().orElseThrow(() -> new RuntimeException("expected expression not found"));
         assertThat(expression.getType(), equalTo(ThresholdType.HIGH));
-        assertThat(expression.getDsType(), equalTo("vfs.dev.discovery"));
+        assertThat(expression.getDsType(), equalTo("vfsdevdiscovery"));
         assertThat(expression.getValue(), equalTo(1.0d));
         assertThat(expression.getRearm(), equalTo(0.0d));
         assertThat(expression.getTrigger(), equalTo(1));
