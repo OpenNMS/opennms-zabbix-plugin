@@ -25,11 +25,17 @@ public class ZabbixGraphGeneratorTest {
         Graph graph = netIfDiscovery.getGraphPrototypes().get(0);
         PrefabGraph prefabGraph = zabbixGraphGenerator.toPrefabGraph(graph, netIfDiscovery);
         assertThat(prefabGraph.getCommand(), equalTo("--title=\"Interface {#IFNAME}: Network traffic\" \\\n" +
-                "DEF:m0={rrd1}:net.if.in:AVERAGE \\\nDEF:m1={rrd1}:net.if.in.dropped:AVERAGE \\\n" +
-                "DEF:m2={rrd1}:net.if.in.errors:AVERAGE \\\nDEF:m3={rrd1}:net.if.out:AVERAGE \\\n" +
-                "DEF:m4={rrd1}:net.if.out.dropped:AVERAGE \\\nDEF:m5={rrd1}:net.if.out.errors:AVERAGE \\\n" +
-                "LINE1:m0#4e9a06:\"net.if.in\" \\ \nLINE1:m1#4e9a06:\"net.if.in.dropped\" \\ \n" +
-                "LINE1:m2#4e9a06:\"net.if.in.errors\" \\ \nLINE1:m3#4e9a06:\"net.if.out\" \\ \n" +
-                "LINE1:m4#4e9a06:\"net.if.out.dropped\" \\ \nLINE1:m5#4e9a06:\"net.if.out.errors\" \\ \n"));
+                "DEF:m0={rrd1}:net_if_in:AVERAGE \\\n" +
+                "DEF:m1={rrd1}:net_if_in_dropped:AVERAGE \\\n" +
+                "DEF:m2={rrd1}:net_if_in_errors:AVERAGE \\\n" +
+                "DEF:m3={rrd1}:net_if_out:AVERAGE \\\n" +
+                "DEF:m4={rrd1}:net_if_out_dropped:AVERAGE \\\n" +
+                "DEF:m5={rrd1}:net_if_out_errors:AVERAGE \\\n" +
+                "LINE1:m0#4e9a06:\"net_if_in\" \\ \n" +
+                "LINE1:m1#4e9a06:\"net_if_in_dropped\" \\ \n" +
+                "LINE1:m2#4e9a06:\"net_if_in_errors\" \\ \n" +
+                "LINE1:m3#4e9a06:\"net_if_out\" \\ \n" +
+                "LINE1:m4#4e9a06:\"net_if_out_dropped\" \\ \n" +
+                "LINE1:m5#4e9a06:\"net_if_out_errors\" \\ \n"));
     }
 }
