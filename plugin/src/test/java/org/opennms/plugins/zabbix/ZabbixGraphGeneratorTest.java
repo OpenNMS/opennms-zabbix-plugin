@@ -24,7 +24,7 @@ public class ZabbixGraphGeneratorTest {
         ZabbixGraphGenerator zabbixGraphGenerator = new ZabbixGraphGenerator();
         Graph graph = netIfDiscovery.getGraphPrototypes().get(0);
         PrefabGraph prefabGraph = zabbixGraphGenerator.toPrefabGraph(graph, netIfDiscovery);
-        assertThat(prefabGraph.getCommand(), equalTo("--title=\"Interface {#IFNAME}: Network traffic\"\n" +
+        assertThat(prefabGraph.getCommand(), equalTo("--title=\"Zabbix: Interface {#IFNAME}: Network traffic\"\n" +
                 "DEF:m0={rrd1}:net_if_in:AVERAGE\n" +
                 "DEF:m1={rrd1}:net_if_in_dropped:AVERAGE\n" +
                 "DEF:m2={rrd1}:net_if_in_errors:AVERAGE\n" +
