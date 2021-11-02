@@ -31,11 +31,11 @@ public class ZabbixGraphGeneratorTest {
                 "DEF:m3={rrd1}:net_if_out:AVERAGE\n" +
                 "DEF:m4={rrd1}:net_if_out_dropped:AVERAGE\n" +
                 "DEF:m5={rrd1}:net_if_out_errors:AVERAGE\n" +
-                "LINE1:m0#4e9a06:\"net_if_in\"\n" +
-                "LINE1:m1#4e9a06:\"net_if_in_dropped\"\n" +
-                "LINE1:m2#4e9a06:\"net_if_in_errors\"\n" +
-                "LINE1:m3#4e9a06:\"net_if_out\"\n" +
-                "LINE1:m4#4e9a06:\"net_if_out_dropped\"\n" +
-                "LINE1:m5#4e9a06:\"net_if_out_errors\"\n"));
+                "LINE1:m0#c2291b:\"net_if_in\"\n" +
+                "LINE1:m1#c2291b:\"net_if_in_dropped\"\n" +
+                "LINE1:m2#c2291b:\"net_if_in_errors\"\n" +
+                "LINE1:m3#c2291b:\"net_if_out\"\n" +
+                "LINE1:m4#c2291b:\"net_if_out_dropped\"\n" +
+                "LINE1:m5#c2291b:\"net_if_out_errors\"\n"));
     }
 }

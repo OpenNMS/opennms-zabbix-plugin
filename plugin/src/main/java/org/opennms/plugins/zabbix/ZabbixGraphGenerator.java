@@ -23,7 +23,7 @@ public class ZabbixGraphGenerator {
         builder.setTypes(new String[]{resourceType});
         StringBuilder sb = new StringBuilder();
         sb.append("--title=\"");
-        sb.append(item.getName());
+        sb.append("Zabbix: " + item.getName());
         sb.append("\"\n");
 
         sb.append("DEF:");
@@ -34,7 +34,7 @@ public class ZabbixGraphGenerator {
 
         sb.append("LINE1:");
         sb.append("m0");
-        sb.append("#4e9a06");
+        sb.append("#c2291b");
         sb.append(":\"");
         sb.append(item.getName());
         sb.append("\"\n");
@@ -62,7 +62,7 @@ public class ZabbixGraphGenerator {
         builder.setTypes(new String[]{resourceType});
         StringBuilder sb = new StringBuilder();
         sb.append("--title=\"");
-        sb.append(graph.getName());
+        sb.append("Zabbix: " + graph.getName());
         sb.append("\"\n");
 
 //        sb.append("--vertical-label=\"");
@@ -83,7 +83,7 @@ public class ZabbixGraphGenerator {
         for (String column : columnNames) {
             sb.append("LINE1:");
             sb.append("m"+k);
-            sb.append("#4e9a06");
+            sb.append("#c2291b");
             sb.append(":\"");
             sb.append(column);
             sb.append("\"\n");
