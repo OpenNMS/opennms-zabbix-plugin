@@ -37,7 +37,7 @@ public class ZabbixGraphGenerator {
         sb.append("#4e9a06");
         sb.append(":\"");
         sb.append(item.getName());
-        sb.append("\" \\ \n");
+        sb.append("\"\n");
 
         builder.setCommand(sb.toString());
         return builder.build();
