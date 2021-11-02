@@ -24,18 +24,18 @@ public class ZabbixGraphGeneratorTest {
         ZabbixGraphGenerator zabbixGraphGenerator = new ZabbixGraphGenerator();
         Graph graph = netIfDiscovery.getGraphPrototypes().get(0);
         PrefabGraph prefabGraph = zabbixGraphGenerator.toPrefabGraph(graph, netIfDiscovery);
-        assertThat(prefabGraph.getCommand(), equalTo("--title=\"Zabbix: Interface {#IFNAME}: Network traffic\"\n" +
-                "DEF:m0={rrd1}:net_if_in:AVERAGE\n" +
-                "DEF:m1={rrd1}:net_if_in_dropped:AVERAGE\n" +
-                "DEF:m2={rrd1}:net_if_in_errors:AVERAGE\n" +
-                "DEF:m3={rrd1}:net_if_out:AVERAGE\n" +
-                "DEF:m4={rrd1}:net_if_out_dropped:AVERAGE\n" +
-                "DEF:m5={rrd1}:net_if_out_errors:AVERAGE\n" +
-                "LINE1:m0#c2291b:\"net_if_in\"\n" +
-                "LINE1:m1#c2291b:\"net_if_in_dropped\"\n" +
-                "LINE1:m2#c2291b:\"net_if_in_errors\"\n" +
-                "LINE1:m3#c2291b:\"net_if_out\"\n" +
-                "LINE1:m4#c2291b:\"net_if_out_dropped\"\n" +
-                "LINE1:m5#c2291b:\"net_if_out_errors\"\n"));
+        assertThat(prefabGraph.getCommand(), equalTo("--title=\"Zabbix: Interface {#IFNAME}: Network traffic\" " +
+                "DEF:m0={rrd1}:net_if_in:AVERAGE " +
+                "DEF:m1={rrd1}:net_if_in_dropped:AVERAGE " +
+                "DEF:m2={rrd1}:net_if_in_errors:AVERAGE " +
+                "DEF:m3={rrd1}:net_if_out:AVERAGE " +
+                "DEF:m4={rrd1}:net_if_out_dropped:AVERAGE " +
+                "DEF:m5={rrd1}:net_if_out_errors:AVERAGE " +
+                "LINE1:m0#c2291b:\"net_if_in\" " +
+                "LINE1:m1#c2291b:\"net_if_in_dropped\" " +
+                "LINE1:m2#c2291b:\"net_if_in_errors\" " +
+                "LINE1:m3#c2291b:\"net_if_out\" " +
+                "LINE1:m4#c2291b:\"net_if_out_dropped\" " +
+                "LINE1:m5#c2291b:\"net_if_out_errors\" "));
     }
 }
