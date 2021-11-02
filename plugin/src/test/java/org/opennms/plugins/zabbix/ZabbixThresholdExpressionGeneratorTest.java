@@ -47,6 +47,9 @@ public class ZabbixThresholdExpressionGeneratorTest {
         assertThat(threshExpression.getRearm(), equalTo(0.0d));
         assertThat(threshExpression.getValue(), equalTo(1.0d));
         assertThat(threshExpression.getType(), equalTo(ThresholdType.HIGH));
+        assertThat(threshExpression.getTriggeredUEI().get(), equalTo("uei.opennms.org/zabbixPlugin/thresholds/CPUinterrupttimeistoohigh/trigger"));
+        assertThat(threshExpression.getRearmedUEI().get(), equalTo("uei.opennms.org/zabbixPlugin/thresholds/CPUinterrupttimeistoohigh/rearm"));
+
 
         // Compound
         trigger = new Trigger();
@@ -77,6 +80,9 @@ public class ZabbixThresholdExpressionGeneratorTest {
         assertThat(threshExpression.getRearm(), equalTo(0.0d));
         assertThat(threshExpression.getValue(), equalTo(1.0d));
         assertThat(threshExpression.getType(), equalTo(ThresholdType.HIGH));
+        assertThat(threshExpression.getTriggeredUEI().get(), equalTo("uei.opennms.org/zabbixPlugin/thresholds/DEVNAMEDiskreadwritereques/trigger"));
+        assertThat(threshExpression.getRearmedUEI().get(), equalTo("uei.opennms.org/zabbixPlugin/thresholds/DEVNAMEDiskreadwritereques/rearm"));
+
     }
 
     @Test

@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import org.opennms.integration.api.v1.config.datacollection.ResourceType;
 import org.opennms.integration.api.v1.config.thresholding.Expression;
 import org.opennms.integration.api.v1.config.thresholding.FilterOperator;
 import org.opennms.integration.api.v1.config.thresholding.ResourceFilter;
@@ -206,6 +205,7 @@ public class ZabbixThresholdExpressionGenerator {
     public static class ZabbixThresholdingExpression implements Expression {
         private final Trigger trigger;
         private final String expression;
+        private final ZabbixEventGenerator zabbixEventGenerator = new ZabbixEventGenerator();
 
         public ZabbixThresholdingExpression(Trigger trigger, String expression) {
             this.trigger = Objects.requireNonNull(trigger);
@@ -266,12 +266,12 @@ public class ZabbixThresholdExpressionGenerator {
 
         @Override
         public Optional<String> getTriggeredUEI() {
-            return Optional.empty();
+            return Optional.of(zabbixEventGenerator.getTriggerEventDefinition(trigger).getUei());
         }
 
         @Override
         public Optional<String> getRearmedUEI() {
-            return Optional.empty();
+            return Optional.of(zabbixEventGenerator.getRearmEventDefinition(trigger).getUei());
         }
 
         @Override

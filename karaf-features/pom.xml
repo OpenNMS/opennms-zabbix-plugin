@@ -84,10 +84,9 @@
                             </framework>
                             <features>
                                 <!-- <feature>opennms-plugins-zabbix</feature> -->
-                                <feature>okhttp</feature>
-                                <feature>guava</feature>
-                                <feature>jackson</feature>
-                                <feature>netty</feature>
+                                <feature>zabbix-guava</feature>
+                                <feature>zabbix-jackson</feature>
+                                <feature>zabbix-netty</feature>
                             </features>
                         </configuration>
                     </execution>
