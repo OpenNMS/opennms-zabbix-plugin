@@ -24,13 +24,13 @@ public class ZabbixGraphGenerator {
         StringBuilder sb = new StringBuilder();
         sb.append("--title=\"");
         sb.append(item.getName());
-        sb.append("\" \\\n");
+        sb.append("\"\n");
 
         sb.append("DEF:");
         sb.append("m0");
         sb.append("={rrd1}:");
         sb.append(metricName);
-        sb.append(":AVERAGE \\\n");
+        sb.append(":AVERAGE\n");
 
         sb.append("LINE1:");
         sb.append("m0");
@@ -63,7 +63,7 @@ public class ZabbixGraphGenerator {
         StringBuilder sb = new StringBuilder();
         sb.append("--title=\"");
         sb.append(graph.getName());
-        sb.append("\" \\\n");
+        sb.append("\"\n");
 
 //        sb.append("--vertical-label=\"");
 //        sb.append(graph.getName());
@@ -75,7 +75,7 @@ public class ZabbixGraphGenerator {
             sb.append("m"+k);
             sb.append("={rrd1}:");
             sb.append(column);
-            sb.append(":AVERAGE \\\n");
+            sb.append(":AVERAGE\n");
             k++;
         }
 
@@ -86,7 +86,7 @@ public class ZabbixGraphGenerator {
             sb.append("#4e9a06");
             sb.append(":\"");
             sb.append(column);
-            sb.append("\" \\ \n");
+            sb.append("\"\n");
             k++;
         }
         builder.setCommand(sb.toString());
