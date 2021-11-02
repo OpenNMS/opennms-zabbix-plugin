@@ -125,7 +125,7 @@ public class ZabbixMetricMapper {
 
         String groupName = DEFAULT_GROUP_NAME;
         if (rule != null) {
-            groupName = rule.getKey();
+            groupName = ZabbixResourceTypeGenerator.sanitizeResourceName(rule.getKey());
         }
 
         if (numericType != null) {
