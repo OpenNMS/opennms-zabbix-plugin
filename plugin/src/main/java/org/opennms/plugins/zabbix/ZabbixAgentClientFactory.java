@@ -39,8 +39,8 @@ import io.netty.channel.nio.NioEventLoopGroup;
 public class ZabbixAgentClientFactory {
     private static final Logger LOG = LoggerFactory.getLogger(ZabbixAgentClientFactory.class);
 
-    private static int DEFAULT_THREAD_SIZE = 30;
-    private static int DEFAULT_POOL_SIZE = 80;
+    private static int DEFAULT_THREAD_SIZE = 25;
+    private static int DEFAULT_POOL_SIZE = 250;
 
     private int poolSize;
     private EventLoopGroup group;

@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import org.opennms.integration.api.v1.collectors.CollectionRequest;
 import org.opennms.integration.api.v1.collectors.CollectionSet;
@@ -112,18 +114,46 @@ public class ZabbixAgentCollectorAsync implements ServiceCollector {
                             .build());
 
             // Process the items in the rule
-            futureList.add(processItems(client, rule, rule.getItemPrototypes(), resourceBuilder).thenRunAsync(() -> {
+            futureList.add(processItems(client, rule, rule.getItemPrototypes(), resourceBuilder).thenRun(() -> {
                 if (rule.getItemPrototypes().size() > 0) {
+                    String str = entry.keySet().stream().map(key-> key +" = " + entry.get(key)).collect(Collectors.joining(",", "{", "}"));
+                    System.out.println("Rule key " + rule.getKey() + " entry:  " + str);
                     collectionSetBuilder.addCollectionSetResource(resourceBuilder.build());
                 }
             }));
+
+            if(futureList.size()>=16) {
+                processFuture(futureList);
+            }
         }
+        /*try {
+            for (CompletableFuture<Void> f : futureList) {
+                f.get();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+        futureList.clear();*/
+
         return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0]));
+    }
+
+    private void processFuture(List<CompletableFuture<Void>> list) {
+        try {
+            CompletableFuture.allOf(list.toArray(new CompletableFuture[0])).get();
+            list.clear();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
     }
 
     private void addValueToMapper(DiscoveryRule rule, Item item, String value, ImmutableCollectionSetResource.Builder<?> resourceBuilder) {
         if (value.startsWith(ZabbixAgentClient.UNSUPPORTED_HEADER)) {
-            LOG.error("{} <> {}", item.getKey(), value);
+            //LOG.error("{} <> {}", item.getKey(), value);
         } else {
             metricMapper.addValueToResource(rule, item, value, resourceBuilder);
         }

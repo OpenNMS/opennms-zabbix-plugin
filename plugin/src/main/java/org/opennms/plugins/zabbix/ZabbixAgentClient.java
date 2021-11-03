@@ -70,11 +70,11 @@ public class ZabbixAgentClient implements Closeable {
             // FIXME: Not sure if all discovery rule keys follow the same format
             try {
                 if(data.startsWith(UNSUPPORTED_HEADER)) {
-                    LOG.error("{} <> {}", key, data);
+                    //LOG.error("{} <> {}", key, data);
                     return Collections.emptyList();
                 }
                 List<Map<String, Object>> entries = (List<Map<String, Object>>) mapper.readValue(data, List.class);
-                LOG.trace("{} = {}", key, entries);
+                //LOG.trace("{} = {}", key, entries);
                 return entries;
             } catch (JsonProcessingException e) {
                 LOG.trace("{} = <invalid json>", key);
@@ -123,7 +123,9 @@ public class ZabbixAgentClient implements Closeable {
         public void channelReadComplete(ChannelHandlerContext ctx) {
             Attribute<CompletableFuture<String>> futureAttribute = ctx.channel().attr(FUTURE);
             CompletableFuture<String> future = futureAttribute.getAndSet(new CompletableFuture<>());
-            future.complete(sb.toString());
+            if(future!=null) {
+                future.complete(sb.toString());
+            }
             pool.release(ctx.channel());
             ctx.fireChannelReadComplete();
         }
