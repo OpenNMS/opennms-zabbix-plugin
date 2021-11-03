@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import org.opennms.integration.api.v1.collectors.CollectionRequest;
@@ -23,6 +25,8 @@ import org.opennms.plugins.zabbix.model.Template;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
+
 /**
  * TODO: Make collector async (required async client)
  * TODO: Collect multiple keys in parallel, leveraging async behavior
@@ -38,6 +42,7 @@ public class ZabbixAgentCollectorAsync implements ServiceCollector {
     private final ZabbixMetricMapper metricMapper = new ZabbixMetricMapper();
 
     private ZabbixAgentClientFactory clientFactory;
+
 
     public ZabbixAgentCollectorAsync(ZabbixAgentClientFactory clientFactory) {
         this.clientFactory = clientFactory;
@@ -73,12 +78,12 @@ public class ZabbixAgentCollectorAsync implements ServiceCollector {
                 for (DiscoveryRule rule : template.getDiscoveryRules()) {
                     try {
                         templateFutures.add(client.discoverData(rule.getKey())
-                                .thenApply(list -> processEntries(client, rule, list, collectionSetBuilder, nodeResource, resourceTypeGenerator)));
+                                .thenApplyAsync(list -> processEntries(client, rule, list, collectionSetBuilder, nodeResource, resourceTypeGenerator)));
                     } catch (ZabbixNotSupportedException e) {
                         // pass
                     }
                 }
-                CompletableFuture.allOf(templateFutures.toArray(new CompletableFuture[0])).get();
+                CompletableFuture.allOf(templateFutures.toArray(new CompletableFuture[0])).join();
             }
             collectionSetBuilder.addCollectionSetResource(nodeResourceBuilder.build());
             future.complete(collectionSetBuilder.build());
@@ -114,46 +119,28 @@ public class ZabbixAgentCollectorAsync implements ServiceCollector {
                             .build());
 
             // Process the items in the rule
-            futureList.add(processItems(client, rule, rule.getItemPrototypes(), resourceBuilder).thenRun(() -> {
+            futureList.add(processItems(client, rule, rule.getItemPrototypes(), resourceBuilder).thenRunAsync(() -> {
                 if (rule.getItemPrototypes().size() > 0) {
-                    String str = entry.keySet().stream().map(key-> key +" = " + entry.get(key)).collect(Collectors.joining(",", "{", "}"));
-                    System.out.println("Rule key " + rule.getKey() + " entry:  " + str);
-                    collectionSetBuilder.addCollectionSetResource(resourceBuilder.build());
+                    synchronized (this) {
+                        collectionSetBuilder.addCollectionSetResource(resourceBuilder.build());
+                    }
                 }
             }));
-
-            if(futureList.size()>=16) {
+            if(futureList.size()> 0 && futureList.size() % 16 ==0) {
                 processFuture(futureList);
             }
         }
-        /*try {
-            for (CompletableFuture<Void> f : futureList) {
-                f.get();
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
-        futureList.clear();*/
-
         return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0]));
     }
 
     private void processFuture(List<CompletableFuture<Void>> list) {
-        try {
-            CompletableFuture.allOf(list.toArray(new CompletableFuture[0])).get();
-            list.clear();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
+       CompletableFuture.allOf(list.toArray(new CompletableFuture[0])).join();
+       list.clear();
     }
 
-    private void addValueToMapper(DiscoveryRule rule, Item item, String value, ImmutableCollectionSetResource.Builder<?> resourceBuilder) {
+    private synchronized void addValueToMapper(DiscoveryRule rule, Item item, String value, ImmutableCollectionSetResource.Builder<?> resourceBuilder) {
         if (value.startsWith(ZabbixAgentClient.UNSUPPORTED_HEADER)) {
-            //LOG.error("{} <> {}", item.getKey(), value);
+            LOG.error("{} <> {}", item.getKey(), value);
         } else {
             metricMapper.addValueToResource(rule, item, value, resourceBuilder);
         }
