@@ -126,7 +126,7 @@ public class ZabbixAgentCollectorAsync implements ServiceCollector {
                     }
                 }
             }));
-            if(futureList.size()> 0 && futureList.size() % 16 ==0) {
+            if(futureList.size() % 16 ==0) { //fixme for some reason we have to split it into small chunks to finish the futures.
                 processFuture(futureList);
             }
         }
