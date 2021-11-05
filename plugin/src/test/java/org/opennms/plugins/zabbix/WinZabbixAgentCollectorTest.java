@@ -7,7 +7,6 @@ import static org.mockito.Mockito.when;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -16,12 +15,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.opennms.integration.api.v1.collectors.CollectionRequest;
 import org.opennms.integration.api.v1.collectors.CollectionSet;
-import org.opennms.integration.api.v1.collectors.resource.CollectionSetResource;
 import org.opennms.integration.api.v1.dao.NodeDao;
 import org.opennms.plugins.zabbix.model.Template;
 
@@ -31,6 +30,8 @@ public class WinZabbixAgentCollectorTest {
 
     @Rule
     public WinZabbixAgentResource zabbixAgent = new WinZabbixAgentResource();
+    private InetAddress address;
+    private int port;
 
     private static List<Template> allTemplates;
     @BeforeClass
@@ -38,11 +39,17 @@ public class WinZabbixAgentCollectorTest {
         allTemplates = new ZabbixTemplateHandler().getTemplates();
     }
 
+    @Before
+    public void init() {
+        address = zabbixAgent.getAddress();
+        port = zabbixAgent.getPort();
+    }
+
 
     @Test
     public void canCollectCpuDetailsWin() throws ExecutionException, InterruptedException, TimeoutException {
         CollectionRequest request = mock(CollectionRequest.class);
-        when(request.getAddress()).thenReturn(zabbixAgent.getAddress());
+        when(request.getAddress()).thenReturn(address);
 
         NodeDao nodeDao = mock(NodeDao.class);
         //ZabbixTemplateHandler zabbixTemplateHandler = new ZabbixTemplateHandler();
@@ -55,13 +62,12 @@ public class WinZabbixAgentCollectorTest {
         Map<String, Object> runtimeAttributes = zabbixAgentCollectorFactory.getRuntimeAttributes(request);
         ZabbixAgentCollector collector = zabbixAgentCollectorFactory.createCollector();
         Map<String, Object> collectorOptions = ImmutableMap.<String, Object>builder()
-                .put(ZabbixAgentCollector.PORT_KEY, zabbixAgent.getPort())
+                .put(ZabbixAgentCollector.PORT_KEY, port)
                 .putAll(runtimeAttributes)
                 .build();
 
         // marshal/unmarshal for test coverage
         collectorOptions = zabbixAgentCollectorFactory.unmarshalParameters(zabbixAgentCollectorFactory.marshalParameters(collectorOptions));
-        long start = System.currentTimeMillis();
         CompletableFuture<CollectionSet> future = collector.collect(request, collectorOptions);
 
         // Verify
@@ -73,7 +79,7 @@ public class WinZabbixAgentCollectorTest {
     @Test
     public void canCollectCpuDetailsAsyncWin() throws ExecutionException, InterruptedException, TimeoutException {
         CollectionRequest request = mock(CollectionRequest.class);
-        when(request.getAddress()).thenReturn(zabbixAgent.getAddress());
+        when(request.getAddress()).thenReturn(address);
 
         NodeDao nodeDao = mock(NodeDao.class);
         //ZabbixTemplateHandler zabbixTemplateHandler = new ZabbixTemplateHandler();
@@ -86,19 +92,19 @@ public class WinZabbixAgentCollectorTest {
         Map<String, Object> runtimeAttributes = zabbixAgentCollectorFactory.getRuntimeAttributes(request);
         ZabbixAgentCollectorAsync collector = new ZabbixAgentCollectorAsync(clientFactory);
         Map<String, Object> collectorOptions = ImmutableMap.<String, Object>builder()
-                .put(ZabbixAgentCollector.PORT_KEY, zabbixAgent.getPort())
+                .put(ZabbixAgentCollector.PORT_KEY, port)
                 .putAll(runtimeAttributes)
                 .build();
 
         // marshal/unmarshal for test coverage
         collectorOptions = zabbixAgentCollectorFactory.unmarshalParameters(zabbixAgentCollectorFactory.marshalParameters(collectorOptions));
-        long start = System.currentTimeMillis();
         CompletableFuture<CollectionSet> future = collector.collect(request, collectorOptions);
 
         // Verify
         CollectionSet collectionSet = future.get(15, TimeUnit.SECONDS);
         // Expect many resources
         assertThat(collectionSet.getCollectionSetResources().size(), is(66));
+
     }
 
     private List<Template> getTemplates() {

@@ -4,10 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 import org.opennms.integration.api.v1.collectors.CollectionRequest;
 import org.opennms.integration.api.v1.collectors.CollectionSet;
@@ -25,7 +21,7 @@ import org.opennms.plugins.zabbix.model.Template;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
+import io.netty.util.internal.StringUtil;
 
 /**
  * TODO: Make collector async (required async client)
@@ -85,8 +81,12 @@ public class ZabbixAgentCollectorAsync implements ServiceCollector {
                 }
                 CompletableFuture.allOf(templateFutures.toArray(new CompletableFuture[0])).join();
             }
-            collectionSetBuilder.addCollectionSetResource(nodeResourceBuilder.build());
-            future.complete(collectionSetBuilder.build());
+            CollectionSet set;
+            synchronized (this) {
+                collectionSetBuilder.addCollectionSetResource(nodeResourceBuilder.build());
+                set = collectionSetBuilder.build();
+            }
+            future.complete(set);
         } catch (NumberFormatException e) {
             future.completeExceptionally(e);
         } catch (Exception e) {
@@ -105,7 +105,7 @@ public class ZabbixAgentCollectorAsync implements ServiceCollector {
         return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0]));
     }
 
-    private CompletableFuture<Void> processEntries(ZabbixAgentClient client, DiscoveryRule rule, List<Map<String, Object>> entries,
+    protected CompletableFuture<Void> processEntries(ZabbixAgentClient client, DiscoveryRule rule, List<Map<String, Object>> entries,
                                                    ImmutableCollectionSet.Builder collectionSetBuilder, NodeResource nodeResource, ZabbixResourceTypeGenerator resourceTypeGenerator) {
         List<CompletableFuture<Void>> futureList = new ArrayList<>();
         final ResourceType resourceType = resourceTypeGenerator.getResourceTypeFor(rule);
@@ -119,16 +119,17 @@ public class ZabbixAgentCollectorAsync implements ServiceCollector {
                             .build());
 
             // Process the items in the rule
-            futureList.add(processItems(client, rule, rule.getItemPrototypes(), resourceBuilder).thenRunAsync(() -> {
-                if (rule.getItemPrototypes().size() > 0) {
-                    synchronized (this) {
-                        collectionSetBuilder.addCollectionSetResource(resourceBuilder.build());
-                    }
-                }
-            }));
-            if(futureList.size() % 16 ==0) { //fixme for some reason we have to split it into small chunks to finish the futures.
-                processFuture(futureList);
+            if(!rule.getItemPrototypes().isEmpty()) {
+                futureList.add(processItems(client, rule, rule.getItemPrototypes(), resourceBuilder)
+                        .thenRunAsync(() -> {
+                            synchronized (this) {
+                                collectionSetBuilder.addCollectionSetResource(resourceBuilder.build());
+                            }
+                        }));
             }
+            /*if(futureList.size() % 16 ==0) { //fixme for some reason we have to split it into small chunks to finish the futures.
+                processFuture(futureList);
+            }*/
         }
         return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0]));
     }
@@ -141,7 +142,7 @@ public class ZabbixAgentCollectorAsync implements ServiceCollector {
     private synchronized void addValueToMapper(DiscoveryRule rule, Item item, String value, ImmutableCollectionSetResource.Builder<?> resourceBuilder) {
         if (value.startsWith(ZabbixAgentClient.UNSUPPORTED_HEADER)) {
             LOG.error("{} <> {}", item.getKey(), value);
-        } else {
+        } else if(!StringUtil.isNullOrEmpty(value)) {
             metricMapper.addValueToResource(rule, item, value, resourceBuilder);
         }
     }
