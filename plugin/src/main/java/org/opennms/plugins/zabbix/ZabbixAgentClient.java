@@ -45,8 +45,6 @@ public class ZabbixAgentClient implements Closeable {
     private static long REUSE_MAX_IDLE = 45_000L;
     private static int REUSE_MAX_REQUEST = 50;
     private static AttributeKey<CompletableFuture<String>> FUTURE = AttributeKey.newInstance("zabbix_future");
-    private static AttributeKey<Long> POOL_RELEASED_TIME = AttributeKey.newInstance("releaseTime");
-    private static AttributeKey<Integer> POOL_REQUEST_COUNT = AttributeKey.newInstance("requestCount");
 
     private ChannelPool channelPool;
 
@@ -62,24 +60,12 @@ public class ZabbixAgentClient implements Closeable {
         channelPool = new SimpleChannelPool(bootstrap, new AbstractChannelPoolHandler() {
             @Override
             public void channelCreated(Channel channel) {
-                channel.attr(POOL_RELEASED_TIME).set(System.currentTimeMillis());
-                channel.attr(POOL_REQUEST_COUNT).set(0);
                 ChannelPipeline pipeline = channel.pipeline();
                 pipeline.addLast("encoder", new ClientRequestEncoder())
                         .addLast("decoder", new ClientResponseDecoder())
                         .addLast("clientHandler", new PooledClientHandler(channelPool));
             }
-
-            @Override
-            public void channelAcquired(Channel ch) {
-                ch.attr(POOL_REQUEST_COUNT).set(ch.attr(POOL_REQUEST_COUNT).get() + 1);
-            }
-
-            @Override
-            public void channelReleased(Channel ch) {
-                ch.attr(POOL_RELEASED_TIME).set(System.currentTimeMillis());
-            }
-        }, new AsyncChannelHealthChecker());
+        });
     }
 
     public CompletableFuture<List<Map<String, Object>>> discoverData(String key) {
@@ -156,22 +142,4 @@ public class ZabbixAgentClient implements Closeable {
             }
         }
     }
-
-
-
-    //This doesn't see any difference in local test
-    private static class AsyncChannelHealthChecker implements ChannelHealthChecker {
-
-        @Override
-        public Future<Boolean> isHealthy(Channel channel) {
-            final long timeSinceUsed = System.currentTimeMillis()-channel.attr(POOL_RELEASED_TIME).get();
-            final int requestCount = channel.attr(POOL_REQUEST_COUNT).get();
-            LOG.info("Channel used since last {} second(s) and required by {} times", timeSinceUsed/1000, requestCount);
-            if(timeSinceUsed > REUSE_MAX_IDLE || requestCount > REUSE_MAX_REQUEST) {
-                return channel.eventLoop().newSucceededFuture(Boolean.FALSE);
-            }
-            return ChannelHealthChecker.ACTIVE.isHealthy(channel);
-        }
-    }
-
 }

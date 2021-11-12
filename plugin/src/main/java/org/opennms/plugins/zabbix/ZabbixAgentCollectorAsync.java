@@ -68,7 +68,7 @@ public class ZabbixAgentCollectorAsync implements ServiceCollector {
                     .setTimestamp(System.currentTimeMillis())
                     .setStatus(CollectionSet.Status.SUCCEEDED);
             // Process the template
-            List<CompletableFuture<? extends Object>> templateFutures = new ArrayList<>();
+            List<CompletableFuture<Void>> templateFutures = new ArrayList<>();
             for (Template template : templates) {
                 LOG.debug("Processing template with name: {}", template.getName());
                 if(template.getItems().size()>0) {
