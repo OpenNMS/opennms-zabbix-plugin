@@ -68,8 +68,8 @@ public class ZabbixAgentCollectorAsync implements ServiceCollector {
                     .setTimestamp(System.currentTimeMillis())
                     .setStatus(CollectionSet.Status.SUCCEEDED);
             // Process the template
+            List<CompletableFuture<? extends Object>> templateFutures = new ArrayList<>();
             for (Template template : templates) {
-                List<CompletableFuture<? extends Object>> templateFutures = new ArrayList<>();
                 LOG.debug("Processing template with name: {}", template.getName());
                 if(template.getItems().size()>0) {
                     Map<String, Item> items = template.getItems().stream().collect(Collectors.toMap(Item::getKey, Function.identity()));
@@ -79,19 +79,18 @@ public class ZabbixAgentCollectorAsync implements ServiceCollector {
                 for (DiscoveryRule rule : template.getDiscoveryRules()) {
                     try {
                         templateFutures.add(client.discoverData(rule.getKey())
-                                .thenApplyAsync(list -> processEntries(client, rule, list, collectionSetBuilder, nodeResource, resourceTypeGenerator)));
+                                .thenAcceptAsync(list -> processEntries(client, rule, list, collectionSetBuilder, nodeResource, resourceTypeGenerator)));
                     } catch (ZabbixNotSupportedException e) {
                         // pass
                     }
                 }
-                CompletableFuture.allOf(templateFutures.toArray(new CompletableFuture[0])).join();
             }
-            CollectionSet set;
+            CompletableFuture.allOf(templateFutures.toArray(new CompletableFuture[0])).join();
+
             synchronized (this) {
-                collectionSetBuilder.addCollectionSetResource(nodeResourceBuilder.build());
-                set = collectionSetBuilder.build();
+                CollectionSet set = collectionSetBuilder.addCollectionSetResource(nodeResourceBuilder.build()).build();
+                future.complete(set);
             }
-            future.complete(set);
         } catch (NumberFormatException e) {
             future.completeExceptionally(e);
         } catch (Exception e) {
@@ -110,9 +109,8 @@ public class ZabbixAgentCollectorAsync implements ServiceCollector {
         return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0]));
     }
 
-    protected CompletableFuture<Void> processEntries(ZabbixAgentClient client, DiscoveryRule rule, List<Map<String, Object>> entries,
+    protected void processEntries(ZabbixAgentClient client, DiscoveryRule rule, List<Map<String, Object>> entries,
                                                    ImmutableCollectionSet.Builder collectionSetBuilder, NodeResource nodeResource, ZabbixResourceTypeGenerator resourceTypeGenerator) {
-        List<CompletableFuture<Void>> futureList = new ArrayList<>();
         final ResourceType resourceType = resourceTypeGenerator.getResourceTypeFor(rule);
         for (Map<String, Object> entry : entries) {
             // Create a new resource for the entry
@@ -126,23 +124,15 @@ public class ZabbixAgentCollectorAsync implements ServiceCollector {
             // Process the items in the rule
             if(!rule.getItemPrototypes().isEmpty()) {
                 Map<String, Item> items = rule.getItemPrototypes().stream().collect(Collectors.toMap(item -> ZabbixMacroSupport.evaluateMacro(item.getKey(), entry), Function.identity()));
-                futureList.add(processItems(client, rule, items, resourceBuilder)
+                //The following process can't change to combined future, otherwise will cause incorrect result.
+                processItems(client, rule, items, resourceBuilder)
                         .thenRunAsync(() -> {
                             synchronized (this) {
                                 collectionSetBuilder.addCollectionSetResource(resourceBuilder.build());
                             }
-                        }));
+                        }).join();
             }
-            /*if(futureList.size() % 16 ==0) { //fixme for some reason we have to split it into small chunks to finish the futures.
-                processFuture(futureList);
-            }*/
         }
-        return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0]));
-    }
-
-    private void processFuture(List<CompletableFuture<Void>> list) {
-       CompletableFuture.allOf(list.toArray(new CompletableFuture[0])).join();
-       list.clear();
     }
 
     private synchronized void addValueToMapper(DiscoveryRule rule, Item item, String value, ImmutableCollectionSetResource.Builder<?> resourceBuilder) {
