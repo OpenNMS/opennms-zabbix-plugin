@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.opennms.integration.api.v1.collectors.CollectionRequest;
 import org.opennms.integration.api.v1.collectors.CollectionSet;
@@ -69,7 +71,10 @@ public class ZabbixAgentCollectorAsync implements ServiceCollector {
             for (Template template : templates) {
                 List<CompletableFuture<? extends Object>> templateFutures = new ArrayList<>();
                 LOG.debug("Processing template with name: {}", template.getName());
-                templateFutures.add(processItems(client, null, template.getItems(), nodeResourceBuilder));
+                if(template.getItems().size()>0) {
+                    Map<String, Item> items = template.getItems().stream().collect(Collectors.toMap(Item::getKey, Function.identity()));
+                    templateFutures.add(processItems(client, null, items, nodeResourceBuilder));
+                }
                 final ZabbixResourceTypeGenerator resourceTypeGenerator = new ZabbixResourceTypeGenerator();
                 for (DiscoveryRule rule : template.getDiscoveryRules()) {
                     try {
@@ -97,10 +102,10 @@ public class ZabbixAgentCollectorAsync implements ServiceCollector {
     }
 
 
-    private CompletableFuture<Void> processItems(ZabbixAgentClient client, DiscoveryRule rule, List<Item> items, ImmutableCollectionSetResource.Builder<?> resourceBuilder) {
+    private CompletableFuture<Void> processItems(ZabbixAgentClient client, DiscoveryRule rule, Map<String, Item> items, ImmutableCollectionSetResource.Builder<?> resourceBuilder) {
         List<CompletableFuture<Void>> futureList = new ArrayList<>();
-        for (Item item : items) {
-            futureList.add(client.retrieveData(item.getKey()).thenAcceptAsync(value -> addValueToMapper(rule, item, value, resourceBuilder)));
+        for (String key : items.keySet()) {
+            futureList.add(client.retrieveData(key).thenAcceptAsync(value -> addValueToMapper(rule, items.get(key), value, resourceBuilder)));
         }
         return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0]));
     }
@@ -120,7 +125,8 @@ public class ZabbixAgentCollectorAsync implements ServiceCollector {
 
             // Process the items in the rule
             if(!rule.getItemPrototypes().isEmpty()) {
-                futureList.add(processItems(client, rule, rule.getItemPrototypes(), resourceBuilder)
+                Map<String, Item> items = rule.getItemPrototypes().stream().collect(Collectors.toMap(item -> ZabbixMacroSupport.evaluateMacro(item.getKey(), entry), Function.identity()));
+                futureList.add(processItems(client, rule, items, resourceBuilder)
                         .thenRunAsync(() -> {
                             synchronized (this) {
                                 collectionSetBuilder.addCollectionSetResource(resourceBuilder.build());
