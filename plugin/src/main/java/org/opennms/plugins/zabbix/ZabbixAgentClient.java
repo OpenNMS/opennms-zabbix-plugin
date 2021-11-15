@@ -42,8 +42,6 @@ public class ZabbixAgentClient implements Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(ZabbixAgentClient.class);
     public static final String UNSUPPORTED_HEADER = "ZBX_NOTSUPPORTED";
     public static final int DEFAULT_PORT = 10050;
-    private static long REUSE_MAX_IDLE = 45_000L;
-    private static int REUSE_MAX_REQUEST = 50;
     private static AttributeKey<CompletableFuture<String>> FUTURE = AttributeKey.newInstance("zabbix_future");
 
     private ChannelPool channelPool;
