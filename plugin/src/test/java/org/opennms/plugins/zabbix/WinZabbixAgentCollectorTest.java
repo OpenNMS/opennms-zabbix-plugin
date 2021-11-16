@@ -10,6 +10,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.util.List;
@@ -54,7 +55,10 @@ public class WinZabbixAgentCollectorTest {
     public void init() throws Exception {
         address = zabbixAgent.getAddress();
         port = zabbixAgent.getPort();
-        windowsServiceEntries = IOUtils.toString(new InputStreamReader(this.getClass().getClassLoader().getResourceAsStream("win_service.txt")));
+        InputStream in = this.getClass().getClassLoader().getResourceAsStream("win_service.txt");
+        if(in != null) {
+            windowsServiceEntries = IOUtils.toString(new InputStreamReader(in));
+        }
     }
 
     @Test
@@ -156,7 +160,7 @@ public class WinZabbixAgentCollectorTest {
     @Test
     public void testProcessEntries() {
         String netDiscovery = "service.discovery";
-        DiscoveryRule rule = getTemplates().stream().flatMap(t -> t.getDiscoveryRules().stream().filter(r -> r.getKey().equals(netDiscovery))).findFirst().get();
+        DiscoveryRule rule = getTemplates().stream().flatMap(t -> t.getDiscoveryRules().stream().filter(r -> r.getKey().equals(netDiscovery))).findFirst().orElse(null);
         ZabbixAgentClient mockClient = createMockClient();
         ZabbixAgentClientFactory mockClientFactory = mock(ZabbixAgentClientFactory.class);
         when(mockClientFactory.createClient(address, port)).thenReturn(mockClient);
