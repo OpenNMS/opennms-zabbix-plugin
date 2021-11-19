@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -28,8 +29,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.opennms.integration.api.v1.collectors.CollectionRequest;
 import org.opennms.integration.api.v1.collectors.CollectionSet;
+import org.opennms.integration.api.v1.collectors.resource.GenericTypeResource;
 import org.opennms.integration.api.v1.collectors.resource.NodeResource;
 import org.opennms.integration.api.v1.collectors.resource.immutables.ImmutableCollectionSet;
+import org.opennms.integration.api.v1.collectors.resource.immutables.ImmutableCollectionSetResource;
 import org.opennms.integration.api.v1.collectors.resource.immutables.ImmutableNodeResource;
 import org.opennms.integration.api.v1.dao.NodeDao;
 import org.opennms.plugins.zabbix.model.DiscoveryRule;
@@ -175,8 +178,10 @@ public class WinZabbixAgentCollectorTest {
                 .setStatus(CollectionSet.Status.SUCCEEDED);
         NodeResource nodeResource = ImmutableNodeResource.newBuilder().setNodeId(0).build();
 
-        collector.processEntriesBulkFuture(mockClient, rule, entries, collectionSetBuilder, nodeResource, resourceTypeGenerator);
+        List<ImmutableCollectionSetResource.Builder<GenericTypeResource>> resourceBuilders = new ArrayList<>();
 
+        collector.processEntries(mockClient, rule, entries, nodeResource, resourceBuilders).join();
+        resourceBuilders.forEach(res->collectionSetBuilder.addCollectionSetResource(res.build()));
         System.out.println(collectionSetBuilder.build().getCollectionSetResources().size());
         assertThat(collectionSetBuilder.build().getCollectionSetResources().size(), is(307));
     }
