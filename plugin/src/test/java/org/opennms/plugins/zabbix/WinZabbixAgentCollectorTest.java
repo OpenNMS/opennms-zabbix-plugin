@@ -9,7 +9,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
@@ -95,37 +94,6 @@ public class WinZabbixAgentCollectorTest {
     }
 
     @Test
-    public void canCollectCpuDetailsAsyncWin() throws ExecutionException, InterruptedException, TimeoutException {
-        CollectionRequest request = mock(CollectionRequest.class);
-        when(request.getAddress()).thenReturn(address);
-
-        NodeDao nodeDao = mock(NodeDao.class);
-        //ZabbixTemplateHandler zabbixTemplateHandler = new ZabbixTemplateHandler();
-        TemplateResolver templateResolver = mock(TemplateResolver.class);
-        List<Template> windowsTemplates = getTemplates();
-        when(templateResolver.getTemplatesForNode(null)).thenReturn(windowsTemplates);
-        ZabbixAgentClientFactory clientFactory = new ZabbixAgentClientFactory();
-        ZabbixAgentCollectorFactory zabbixAgentCollectorFactory = new ZabbixAgentCollectorFactory(nodeDao, templateResolver);
-        zabbixAgentCollectorFactory.setClientFactory(clientFactory);
-        Map<String, Object> runtimeAttributes = zabbixAgentCollectorFactory.getRuntimeAttributes(request);
-        ZabbixAgentCollectorAsync collector = new ZabbixAgentCollectorAsync(clientFactory);
-        Map<String, Object> collectorOptions = ImmutableMap.<String, Object>builder()
-                .put(ZabbixAgentCollector.PORT_KEY, port)
-                .putAll(runtimeAttributes)
-                .build();
-
-        // marshal/unmarshal for test coverage
-        collectorOptions = zabbixAgentCollectorFactory.unmarshalParameters(zabbixAgentCollectorFactory.marshalParameters(collectorOptions));
-        CompletableFuture<CollectionSet> future = collector.collect(request, collectorOptions);
-
-        // Verify
-        CollectionSet collectionSet = future.get(15, TimeUnit.SECONDS);
-        // Expect many resources
-        assertThat(collectionSet.getCollectionSetResources().size(), is(66));
-
-    }
-
-    @Test
     public void testWithMockClient() throws ExecutionException, InterruptedException, TimeoutException {
         CollectionRequest request = mock(CollectionRequest.class);
         when(request.getAddress()).thenReturn(address);
@@ -143,7 +111,7 @@ public class WinZabbixAgentCollectorTest {
         ZabbixAgentCollectorFactory zabbixAgentCollectorFactory = new ZabbixAgentCollectorFactory(nodeDao, templateResolver);
         zabbixAgentCollectorFactory.setClientFactory(mockClientFactory);
         Map<String, Object> runtimeAttributes = zabbixAgentCollectorFactory.getRuntimeAttributes(request);
-        ZabbixAgentCollectorAsync collector = new ZabbixAgentCollectorAsync(mockClientFactory);
+        ZabbixAgentCollector collector = new ZabbixAgentCollector(mockClientFactory);
         Map<String, Object> collectorOptions = ImmutableMap.<String, Object>builder()
                 .put(ZabbixAgentCollector.PORT_KEY, port)
                 .putAll(runtimeAttributes)
@@ -167,7 +135,7 @@ public class WinZabbixAgentCollectorTest {
         ZabbixAgentClient mockClient = createMockClient();
         ZabbixAgentClientFactory mockClientFactory = mock(ZabbixAgentClientFactory.class);
         when(mockClientFactory.createClient(address, port)).thenReturn(mockClient);
-        ZabbixAgentCollectorAsync collector = new ZabbixAgentCollectorAsync(mockClientFactory);
+        ZabbixAgentCollector collector = new ZabbixAgentCollector(mockClientFactory);
         ZabbixResourceTypeGenerator resourceTypeGenerator = new ZabbixResourceTypeGenerator();
 
         List<Map<String, Object>> entries = mockClient.discoverData(netDiscovery).join();

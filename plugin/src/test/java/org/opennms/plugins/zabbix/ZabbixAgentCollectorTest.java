@@ -1,7 +1,6 @@
 package org.opennms.plugins.zabbix;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -49,36 +48,6 @@ public class ZabbixAgentCollectorTest {
         zabbixAgentCollectorFactory.setClientFactory(clientFactory);
         Map<String, Object> runtimeAttributes = zabbixAgentCollectorFactory.getRuntimeAttributes(request);
         ZabbixAgentCollector collector = zabbixAgentCollectorFactory.createCollector();
-        Map<String, Object> collectorOptions = ImmutableMap.<String, Object>builder()
-                .put(ZabbixAgentCollector.PORT_KEY, zabbixAgent.getPort())
-                .putAll(runtimeAttributes)
-                .build();
-
-        // marshal/unmarshal for test coverage
-        collectorOptions = zabbixAgentCollectorFactory.unmarshalParameters(zabbixAgentCollectorFactory.marshalParameters(collectorOptions));
-
-        CompletableFuture<CollectionSet> future = collector.collect(request, collectorOptions);
-
-        // Verify
-        CollectionSet collectionSet = future.get(5, TimeUnit.SECONDS);
-        // Expect many resources
-        assertThat(collectionSet.getCollectionSetResources().size(), is(8));
-    }
-
-    @Test
-    public void canCollectCpuDetailsAsync() throws ExecutionException, InterruptedException, TimeoutException {
-        CollectionRequest request = mock(CollectionRequest.class);
-        when(request.getAddress()).thenReturn(zabbixAgent.getAddress());
-
-        NodeDao nodeDao = mock(NodeDao.class);
-        ZabbixTemplateHandler zabbixTemplateHandler = new ZabbixTemplateHandler();
-        TemplateResolver templateResolver = mock(TemplateResolver.class);
-        when(templateResolver.getTemplatesForNode(null)).thenReturn(getTemplates());
-        ZabbixAgentClientFactory clientFactory =new ZabbixAgentClientFactory();
-        ZabbixAgentCollectorFactory zabbixAgentCollectorFactory = new ZabbixAgentCollectorFactory(nodeDao, templateResolver);
-        zabbixAgentCollectorFactory.setClientFactory(clientFactory);
-        Map<String, Object> runtimeAttributes = zabbixAgentCollectorFactory.getRuntimeAttributes(request);
-        ZabbixAgentCollectorAsync collector = new ZabbixAgentCollectorAsync(clientFactory);
         Map<String, Object> collectorOptions = ImmutableMap.<String, Object>builder()
                 .put(ZabbixAgentCollector.PORT_KEY, zabbixAgent.getPort())
                 .putAll(runtimeAttributes)
