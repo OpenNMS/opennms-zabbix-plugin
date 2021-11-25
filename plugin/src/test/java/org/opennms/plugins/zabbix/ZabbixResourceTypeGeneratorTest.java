@@ -41,7 +41,7 @@ public class ZabbixResourceTypeGeneratorTest {
 
         // Verify
         // rule key -> resource type name (i.e. id)
-        assertThat(resourceType.getName(), equalTo("vfsfsdiscovery"));
+        assertThat(resourceType.getName(), equalTo(fsDiscoveryRule.getKey()));
         // rule name -> resource type label
         assertThat(resourceType.getLabel(), equalTo(fsDiscoveryRule.getName()));
         // first tag value -> resource label
@@ -68,7 +68,7 @@ public class ZabbixResourceTypeGeneratorTest {
 
         // Verify
         // rule key -> resource type name (i.e. id)
-        assertThat(resourceType.getName(), equalTo("perfinstanceendiscoveryPhysicalDisk"));
+        assertThat(resourceType.getName(), equalTo(diskDiscoveryRule.getKey()));
         // rule name -> resource type label
         assertThat(resourceType.getLabel(), equalTo(diskDiscoveryRule.getName()));
         // first tag value -> resource label

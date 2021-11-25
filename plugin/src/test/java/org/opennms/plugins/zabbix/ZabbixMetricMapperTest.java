@@ -20,14 +20,14 @@ public class ZabbixMetricMapperTest {
      */
     @Test
     public void canMapMetrics() {
-        assertThat(metricMapper.getMetricName("net.if.out[\"{#IFNAME}\",errors]"), equalTo("net_if_out_errors"));
-        assertThat(metricMapper.getMetricName("net.if.in[\"{#IFNAME}\"]"), equalTo("net_if_in"));
-        assertThat(metricMapper.getMetricName("vm.memory.utilization"), equalTo("vm_memory_utilization"));
-        assertThat(metricMapper.getMetricName("system.cpu.util[,iowait]"), equalTo("system_cpu_util_iowait"));
-        assertThat(metricMapper.getMetricName("proc.num[,,run]"), equalTo("proc_num_run"));
-        assertThat(metricMapper.getMetricName("vfs.file.contents[/sys/block/{#DEVNAME}/stat]"), equalTo("vfs_file_contents"));
-        assertThat(metricMapper.getMetricName("perf_counter_en[\"\\Memory\\Free System Page Table Entries\"]"), equalTo("perf_counter_en_memory_free_system_page_table_entries"));
-        assertThat(metricMapper.getMetricName("perf_counter_en[\"\\Processor Information(_total)\\% Interrupt Time\"]"), equalTo("perf_counter_en_processor_information_total_interrupt_time"));
+        assertThat(metricMapper.getMetricName("net.if.out[\"{#IFNAME}\",errors]"), equalTo("net.if.out.errors"));
+        assertThat(metricMapper.getMetricName("net.if.in[\"{#IFNAME}\"]"), equalTo("net.if.in"));
+        assertThat(metricMapper.getMetricName("vm.memory.utilization"), equalTo("vm.memory.utilization"));
+        assertThat(metricMapper.getMetricName("system.cpu.util[,iowait]"), equalTo("system.cpu.util.iowait"));
+        assertThat(metricMapper.getMetricName("proc.num[,,run]"), equalTo("proc.num.run"));
+        assertThat(metricMapper.getMetricName("vfs.file.contents[/sys/block/{#DEVNAME}/stat]"), equalTo("vfs.file.contents"));
+        assertThat(metricMapper.getMetricName("perf_counter_en[\"\\Memory\\Free System Page Table Entries\"]"), equalTo("perf_counter_en.memory.free.system.page.table.entries"));
+        assertThat(metricMapper.getMetricName("perf_counter_en[\"\\Processor Information(_total)\\% Interrupt Time\"]"), equalTo("perf_counter_en.processor.information._total.interrupt.time"));
     }
 
     @Test

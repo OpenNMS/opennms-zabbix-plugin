@@ -3,6 +3,7 @@ package org.opennms.plugins.zabbix.config;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.opennms.integration.api.v1.config.datacollection.graphs.PrefabGraph;
 import org.opennms.plugins.zabbix.ZabbixGraphGenerator;
@@ -20,13 +21,7 @@ public class GraphPropertiesExtension implements org.opennms.integration.api.v1.
 
     @Override
     public List<PrefabGraph> getPrefabGraphs() {
-        final List<PrefabGraph> allGraphs = new LinkedList<>();
-        zabbixTemplateHandler.getTemplates()
-                .stream().flatMap(t -> t.getItems().stream())
-                .map(zabbixGraphGenerator::toPrefabGraph)
-                .forEach(allGraphs::add);
-
-        zabbixTemplateHandler.getTemplates()
+        return zabbixTemplateHandler.getTemplates()
                 .stream().flatMap(t -> t.getDiscoveryRules().stream())
                 .flatMap(r -> {
                     List<PrefabGraph> graphs = new LinkedList<>();
@@ -35,7 +30,6 @@ public class GraphPropertiesExtension implements org.opennms.integration.api.v1.
                     }
                     return graphs.stream();
                 })
-                .forEach(allGraphs::add);
-        return allGraphs;
+                .collect(Collectors.toList());
     }
 }

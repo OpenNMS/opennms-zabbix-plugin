@@ -29,48 +29,10 @@ public class ZabbixMetricMapper {
         return NumericAttribute.Type.GAUGE;
     }
 
-    private String sanitizeMetricName(String metricName) {
-        // filter unsupported characters
-        StringBuilder sb = new StringBuilder();
-        for (int i=0; i < metricName.length(); i++) {
-            char b = metricName.charAt(i);
-            if (!((b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || b == '_' || (b >= '0' && b <= '9' && i > 0))) {
-                sb.append("_");
-            } else {
-                sb.append(b);
-            }
-        }
-        metricName = sb.toString();
-
-        // collapse many ___ to one _
-        sb = new StringBuilder();
-        boolean lastCharWasUnderscore = false;
-        for (char c : metricName.toCharArray()) {
-            if (c != '_') {
-                sb.append(c);
-                lastCharWasUnderscore = false;
-            } else if (!lastCharWasUnderscore) {
-                sb.append(c);
-                lastCharWasUnderscore = true;
-            } // else, this is another _, skip
-        }
-        metricName = sb.toString();
-
-        // lowercase
-        metricName = metricName.toLowerCase();
-
-        // remove trailing _
-        if (metricName.endsWith("_")) {
-            metricName = metricName.substring(0, metricName.length() - 1);
-        }
-
-        return metricName;
-    }
-
     public String getMetricName(ItemKey key) {
         // no parameters - use the key directly
         if (key.getParameters().size() < 1) {
-            return sanitizeMetricName(key.getName());
+            return key.getName();
         }
         StringBuilder sb = new StringBuilder();
         sb.append(key.getName());
@@ -87,10 +49,33 @@ public class ZabbixMetricMapper {
             if (ZabbixMacroSupport.containsMacro(parmValue)) {
                 continue;
             }
-            sb.append("_");
+            sb.append(".");
             sb.append(parmValue);
         }
-        return sanitizeMetricName(sb.toString());
+        String metricName = sb.toString();
+        metricName = metricName.replaceAll("[^A-Za-z0-9_]", ".");
+
+        // collapse many ... to one .
+        sb = new StringBuilder();
+        boolean lastCharWasDot = false;
+        for (char c : metricName.toCharArray()) {
+            if (c != '.') {
+                sb.append(c);
+                lastCharWasDot = false;
+            } else if (!lastCharWasDot) {
+                sb.append(c);
+                lastCharWasDot = true;
+            } // else, this is another ., skip
+        }
+        metricName = sb.toString();
+
+        metricName = metricName.toLowerCase();
+        // remove trailing .
+        if (metricName.endsWith(".")) {
+            metricName = metricName.substring(0, metricName.length() - 1);
+        }
+
+        return metricName;
     }
 
     public String getMetricName(String key) {
@@ -125,7 +110,7 @@ public class ZabbixMetricMapper {
 
         String groupName = DEFAULT_GROUP_NAME;
         if (rule != null) {
-            groupName = ZabbixResourceTypeGenerator.sanitizeResourceName(rule.getKey());
+            groupName = rule.getKey();
         }
 
         if (numericType != null) {

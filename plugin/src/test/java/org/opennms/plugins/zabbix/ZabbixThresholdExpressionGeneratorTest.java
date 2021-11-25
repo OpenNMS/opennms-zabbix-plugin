@@ -22,6 +22,7 @@ public class ZabbixThresholdExpressionGeneratorTest {
     private final ZabbixTemplateHandler zabbixTemplateHandler = new ZabbixTemplateHandler();
     private final ZabbixThresholdExpressionGenerator zabbixThresholdExpressionGenerator = new ZabbixThresholdExpressionGenerator(zabbixTemplateHandler);
 
+
     @Test
     public void canGenerateExpression() {
         // Simple
@@ -41,15 +42,12 @@ public class ZabbixThresholdExpressionGeneratorTest {
         template.setMacros(Collections.singletonList(macro));
 
         Expression threshExpression = zabbixThresholdExpressionGenerator.parse(trigger);
-        assertThat(threshExpression.getExpression(), equalTo("(datasources['perf_counter_en_processor_information_total_interrupt_time'] > 50.00) ? 1 : 0"));
+        assertThat(threshExpression.getExpression(), equalTo("(datasources['perf_counter_en.processor.information._total.interrupt.time'] > 50.00) ? 1 : 0"));
         assertThat(threshExpression.getDsType(), equalTo("node"));
         assertThat(threshExpression.getTrigger(), equalTo(1));
         assertThat(threshExpression.getRearm(), equalTo(0.0d));
         assertThat(threshExpression.getValue(), equalTo(1.0d));
         assertThat(threshExpression.getType(), equalTo(ThresholdType.HIGH));
-        assertThat(threshExpression.getTriggeredUEI().get(), equalTo("uei.opennms.org/zabbixPlugin/thresholds/CPUinterrupttimeistoohigh/trigger"));
-        assertThat(threshExpression.getRearmedUEI().get(), equalTo("uei.opennms.org/zabbixPlugin/thresholds/CPUinterrupttimeistoohigh/rearm"));
-
 
         // Compound
         trigger = new Trigger();
@@ -59,6 +57,7 @@ public class ZabbixThresholdExpressionGeneratorTest {
         trigger.setDescription("This trigger might indicate disk {#DEVNAME} saturation.");
         trigger.setItem(item);
 
+        // FIXME: Macro in expression refers to: {$VFS.DEV.READ.AWAIT.WARN:"{#DEVNAME}"}
         Macro readAwait = new Macro();
         readAwait.setMacro("{$VFS.DEV.READ.AWAIT.WARN}");
         readAwait.setValue("5");
@@ -73,16 +72,13 @@ public class ZabbixThresholdExpressionGeneratorTest {
         trigger.setDiscoveryRule(discoveryRule);
 
         threshExpression = zabbixThresholdExpressionGenerator.parse(trigger);
-        assertThat(threshExpression.getExpression(), equalTo("((datasources['vfs_dev_read_await'] > 5.00) ? 1 : 0) " +
-                "+ ((datasources['vfs_dev_write_await'] > 6.00) ? 1 : 0)"));
-        assertThat(threshExpression.getDsType(), equalTo("vfsdevdiscovery"));
+        assertThat(threshExpression.getExpression(), equalTo("((datasources['vfs.dev.read.await'] > 5.00) ? 1 : 0) " +
+                "+ ((datasources['vfs.dev.write.await'] > 6.00) ? 1 : 0)"));
+        assertThat(threshExpression.getDsType(), equalTo("vfs.dev.discovery"));
         assertThat(threshExpression.getTrigger(), equalTo(1));
         assertThat(threshExpression.getRearm(), equalTo(0.0d));
         assertThat(threshExpression.getValue(), equalTo(1.0d));
         assertThat(threshExpression.getType(), equalTo(ThresholdType.HIGH));
-        assertThat(threshExpression.getTriggeredUEI().get(), equalTo("uei.opennms.org/zabbixPlugin/thresholds/DEVNAMEDiskreadwritereques/trigger"));
-        assertThat(threshExpression.getRearmedUEI().get(), equalTo("uei.opennms.org/zabbixPlugin/thresholds/DEVNAMEDiskreadwritereques/rearm"));
-
     }
 
     @Test
@@ -99,16 +95,16 @@ public class ZabbixThresholdExpressionGeneratorTest {
         assertThat(expression.getValue(), equalTo(1.0d));
         assertThat(expression.getRearm(), equalTo(0.0d));
         assertThat(expression.getTrigger(), equalTo(1));
-        assertThat(expression.getExpression(), equalTo("(datasources['perf_counter_en_memory_free_system_page_table_entries'] < 5000.00) ? 1 : 0"));
+        assertThat(expression.getExpression(), equalTo("(datasources['perf_counter_en.memory.free.system.page.table.entries'] < 5000.00) ? 1 : 0"));
 
         expression = expressions.stream()
                 .filter(t -> "This trigger might indicate disk {#DEVNAME} saturation.".equals(t.getDescription().get()))
                 .findFirst().orElseThrow(() -> new RuntimeException("expected expression not found"));
         assertThat(expression.getType(), equalTo(ThresholdType.HIGH));
-        assertThat(expression.getDsType(), equalTo("vfsdevdiscovery"));
+        assertThat(expression.getDsType(), equalTo("vfs.dev.discovery"));
         assertThat(expression.getValue(), equalTo(1.0d));
         assertThat(expression.getRearm(), equalTo(0.0d));
         assertThat(expression.getTrigger(), equalTo(1));
-        assertThat(expression.getExpression(), equalTo("((datasources['vfs_dev_read_await'] > 20.00) ? 1 : 0) + ((datasources['vfs_dev_write_await'] > 20.00) ? 1 : 0)"));
+        assertThat(expression.getExpression(), equalTo("((datasources['vfs.dev.read.await'] > 20.00) ? 1 : 0) + ((datasources['vfs.dev.write.await'] > 20.00) ? 1 : 0)"));
     }
 }
