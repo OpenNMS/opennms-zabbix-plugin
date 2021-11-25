@@ -64,6 +64,12 @@
         </bean>
     </service>
 
+    <service interface="org.opennms.integration.api.v1.config.events.EventConfExtension">
+        <bean class="org.opennms.plugins.zabbix.config.EventConfExtension">
+            <argument ref="zabbixTemplateHandler" />
+        </bean>
+    </service>
+
     <!-- Lab -->
     <bean id="labContextManager" class="org.opennms.plugins.zabbix.lab.LabContextManager"/>
     <service interface="org.opennms.plugins.zabbix.lab.LabContextManager" ref="labContextManager" />
