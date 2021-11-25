@@ -30,28 +30,25 @@ package org.opennms.plugins.zabbix;
 
 import java.net.InetAddress;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.rules.ExternalResource;
+import org.opennms.plugins.zabbix.agent.AbstractAgent;
 
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
+public abstract class AbstractAgentResource extends ExternalResource {
+    protected AbstractAgent zabbixAgent;
 
-public class ZabbixAgentClientFactory {
-    private static final Logger LOG = LoggerFactory.getLogger(ZabbixAgentClientFactory.class);
-
-    private static int DEFAULT_THREAD_SIZE =10;
-
-    private EventLoopGroup group;
-
-    public ZabbixAgentClientFactory() {
-        this(DEFAULT_THREAD_SIZE);
+    @Override
+    protected void after() {
+        if (zabbixAgent != null) {
+            zabbixAgent.stop();
+            zabbixAgent = null;
+        }
     }
 
-    public ZabbixAgentClientFactory(int threadSize) {
-        group = new NioEventLoopGroup(threadSize);
+    public InetAddress getAddress() {
+        return zabbixAgent.getAddress();
     }
 
-    public ZabbixAgentClient createClient(InetAddress address, int port) {
-        return new ZabbixAgentClient(group, address, port);
+    public int getPort() {
+        return zabbixAgent.getPort();
     }
 }

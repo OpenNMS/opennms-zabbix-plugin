@@ -24,8 +24,9 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.pool.AbstractChannelPoolHandler;
+import io.netty.channel.pool.ChannelHealthChecker;
 import io.netty.channel.pool.ChannelPool;
-import io.netty.channel.pool.FixedChannelPool;
+import io.netty.channel.pool.SimpleChannelPool;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
@@ -41,10 +42,11 @@ public class ZabbixAgentClient implements Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(ZabbixAgentClient.class);
     public static final String UNSUPPORTED_HEADER = "ZBX_NOTSUPPORTED";
     public static final int DEFAULT_PORT = 10050;
-    private static AttributeKey<CompletableFuture<String>> FUTURE = AttributeKey.valueOf("zabbix_future");
+    private static AttributeKey<CompletableFuture<String>> FUTURE = AttributeKey.newInstance("zabbix_future");
+
     private ChannelPool channelPool;
 
-    public ZabbixAgentClient(EventLoopGroup group, InetAddress address, int port, int maxConnection) {
+    public ZabbixAgentClient(EventLoopGroup group, InetAddress address, int port) {
        Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(group)
                 .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
@@ -53,7 +55,7 @@ public class ZabbixAgentClient implements Closeable {
                 .channel(NioSocketChannel.class)
                 .remoteAddress(address, port);
 
-        channelPool = new FixedChannelPool(bootstrap, new AbstractChannelPoolHandler() {
+        channelPool = new SimpleChannelPool(bootstrap, new AbstractChannelPoolHandler() {
             @Override
             public void channelCreated(Channel channel) {
                 ChannelPipeline pipeline = channel.pipeline();
@@ -61,7 +63,7 @@ public class ZabbixAgentClient implements Closeable {
                         .addLast("decoder", new ClientResponseDecoder())
                         .addLast("clientHandler", new PooledClientHandler(channelPool));
             }
-        }, maxConnection);
+        });
     }
 
     public CompletableFuture<List<Map<String, Object>>> discoverData(String key) {
@@ -70,12 +72,9 @@ public class ZabbixAgentClient implements Closeable {
             // FIXME: Not sure if all discovery rule keys follow the same format
             try {
                 if(data.startsWith(UNSUPPORTED_HEADER)) {
-                    LOG.error("{} <> {}", key, data);
                     return Collections.emptyList();
                 }
-                List<Map<String, Object>> entries = (List<Map<String, Object>>) mapper.readValue(data, List.class);
-                LOG.trace("{} = {}", key, entries);
-                return entries;
+                return (List<Map<String, Object>>) mapper.readValue(data, List.class);
             } catch (JsonProcessingException e) {
                 LOG.trace("{} = <invalid json>", key);
                 return Collections.emptyList();
@@ -91,7 +90,7 @@ public class ZabbixAgentClient implements Closeable {
             if (f.isSuccess()) {
                 Channel channel = f.getNow();
                 channel.attr(FUTURE).set(future);
-                channel.writeAndFlush(key, channel.voidPromise());
+                channel.writeAndFlush(key);
             }
         });
         return future;
@@ -116,14 +115,16 @@ public class ZabbixAgentClient implements Closeable {
         public void channelRead(ChannelHandlerContext ctx, Object in) {
             String msg = (String) in;
             sb.append(msg);
-            pool.release(ctx.channel());
+            pool.release(ctx.channel()); //still need this otherwise it will hang forever when testing with real Windows agent
         }
 
         @Override
         public void channelReadComplete(ChannelHandlerContext ctx) {
             Attribute<CompletableFuture<String>> futureAttribute = ctx.channel().attr(FUTURE);
-            CompletableFuture<String> future = futureAttribute.getAndSet(new CompletableFuture<>());
-            future.complete(sb.toString());
+            CompletableFuture<String> future = futureAttribute.get();
+            if(future!=null) {
+                future.complete(sb.toString());
+            }
             pool.release(ctx.channel());
             ctx.fireChannelReadComplete();
         }
@@ -131,12 +132,12 @@ public class ZabbixAgentClient implements Closeable {
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
             Attribute<CompletableFuture<String>> futureAttribute = ctx.channel().attr(FUTURE);
-            CompletableFuture<String> future = futureAttribute.getAndSet(new CompletableFuture<>());
-            cause.printStackTrace();
+            CompletableFuture<String> future = futureAttribute.get();
             pool.release(ctx.channel());
             ctx.close();
-            future.completeExceptionally(cause);
+            if(future != null) {
+                future.completeExceptionally(cause);
+            }
         }
     }
-
 }
