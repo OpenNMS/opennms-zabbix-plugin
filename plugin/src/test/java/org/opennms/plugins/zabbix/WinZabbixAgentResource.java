@@ -28,30 +28,14 @@
 
 package org.opennms.plugins.zabbix;
 
-import java.net.InetAddress;
+import java.net.UnknownHostException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.opennms.plugins.zabbix.agent.ZabbixAgentWin;
 
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-
-public class ZabbixAgentClientFactory {
-    private static final Logger LOG = LoggerFactory.getLogger(ZabbixAgentClientFactory.class);
-
-    private static int DEFAULT_THREAD_SIZE =10;
-
-    private EventLoopGroup group;
-
-    public ZabbixAgentClientFactory() {
-        this(DEFAULT_THREAD_SIZE);
-    }
-
-    public ZabbixAgentClientFactory(int threadSize) {
-        group = new NioEventLoopGroup(threadSize);
-    }
-
-    public ZabbixAgentClient createClient(InetAddress address, int port) {
-        return new ZabbixAgentClient(group, address, port);
+public class WinZabbixAgentResource extends AbstractAgentResource {
+    @Override
+    protected void before() throws InterruptedException, UnknownHostException {
+        zabbixAgent = new ZabbixAgentWin();
+        zabbixAgent.start();
     }
 }
