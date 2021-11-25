@@ -16,10 +16,10 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
-public class LinuxZabbixAgentClientTest {
+public class ZabbixAgentClientTest {
 
     @Rule
-    public LinuxZabbixAgentResource zabbixAgent = new LinuxZabbixAgentResource();
+    public MockZabbixAgent zabbixAgent = new MockZabbixAgent();
     public static ZabbixAgentClientFactory clientFactory;
 
     @BeforeClass
@@ -28,7 +28,7 @@ public class LinuxZabbixAgentClientTest {
     }
 
     @Test
-    public void canQueryLocalAgent() throws ExecutionException, InterruptedException {
+    public void canQueryLocalAgent() throws IOException, ExecutionException, InterruptedException {
         try (ZabbixAgentClient client = clientFactory.createClient(zabbixAgent.getAddress(), zabbixAgent.getPort())) {
             List<Map<String, Object>> data = client.discoverData("vfs.fs.discovery").get();
             assertThat(data, not(empty()));
@@ -36,7 +36,7 @@ public class LinuxZabbixAgentClientTest {
     }
 
     @Test
-    public void testRetrieveDataLocalAgent() throws ExecutionException, InterruptedException {
+    public void testRetrieveDataLocalAgent() throws IOException, ExecutionException, InterruptedException {
         try (ZabbixAgentClient client = clientFactory.createClient(zabbixAgent.getAddress(), zabbixAgent.getPort())) {
             String result = client.retrieveData("vfs.fs.discovery").get();
             assertThat(result, notNullValue());
@@ -44,7 +44,7 @@ public class LinuxZabbixAgentClientTest {
     }
 
     @Test
-    public void testRetrieveUnSupport() throws ExecutionException, InterruptedException {
+    public void testRetrieveUnSupport() throws IOException, ExecutionException, InterruptedException {
         try (ZabbixAgentClient client = clientFactory.createClient(zabbixAgent.getAddress(), zabbixAgent.getPort())) {
             String result = client.retrieveData("some-bad-key").get();
             assertThat(result, startsWith(ZabbixAgentClient.UNSUPPORTED_HEADER));

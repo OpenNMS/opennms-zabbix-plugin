@@ -39,19 +39,22 @@ import io.netty.channel.nio.NioEventLoopGroup;
 public class ZabbixAgentClientFactory {
     private static final Logger LOG = LoggerFactory.getLogger(ZabbixAgentClientFactory.class);
 
-    private static int DEFAULT_THREAD_SIZE =10;
+    private static int DEFAULT_THREAD_SIZE = 30;
+    private static int DEFAULT_POOL_SIZE = 80;
 
+    private int poolSize;
     private EventLoopGroup group;
 
     public ZabbixAgentClientFactory() {
-        this(DEFAULT_THREAD_SIZE);
+        this(DEFAULT_THREAD_SIZE, DEFAULT_POOL_SIZE);
     }
 
-    public ZabbixAgentClientFactory(int threadSize) {
+    public ZabbixAgentClientFactory(int threadSize, int poolSize) {
+        this.poolSize = poolSize;
         group = new NioEventLoopGroup(threadSize);
     }
 
     public ZabbixAgentClient createClient(InetAddress address, int port) {
-        return new ZabbixAgentClient(group, address, port);
+        return new ZabbixAgentClient(group, address, port, poolSize);
     }
 }

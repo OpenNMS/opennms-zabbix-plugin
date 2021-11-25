@@ -28,9 +28,23 @@ public class ZabbixResourceTypeGenerator {
         return ZabbixMacroSupport.evaluateMacro(String.format("{#%s}", varName), entry);
     }
 
+    public static String sanitizeResourceName(String resourceName) {
+        // filter unsupported characters
+        final StringBuilder sb = new StringBuilder();
+        for (int i=0; i < resourceName.length(); i++) {
+            char b = resourceName.charAt(i);
+            if (!((b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9' && i > 0))) {
+                continue;
+            } else {
+                sb.append(b);
+            }
+        }
+        return sb.toString();
+    }
+
     public org.opennms.integration.api.v1.config.datacollection.ResourceType getResourceTypeFor(DiscoveryRule rule) {
         ResourceType resourceType = new ResourceType();
-        resourceType.setName(rule.getKey());
+        resourceType.setName(sanitizeResourceName(rule.getKey()));
         resourceType.setLabel(rule.getName());
         resourceType.setResourceLabel(getFirstTag(rule).map(t -> ZabbixMacroSupport.macrosToVariables(t.getValue()))
                 .orElse("${index}"));
