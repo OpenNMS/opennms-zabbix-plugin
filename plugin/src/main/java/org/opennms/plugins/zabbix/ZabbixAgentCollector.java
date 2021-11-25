@@ -136,9 +136,9 @@ public class ZabbixAgentCollector implements ServiceCollector {
     }
 
     private void addValueToMapper(DiscoveryRule rule, Item item, String value, ImmutableCollectionSetResource.Builder<?> resourceBuilder) {
-        if (value.startsWith(ZabbixAgentClient.UNSUPPORTED_HEADER)) {
-            LOG.error("{} <> {}", item.getKey(), value);
-        } else if(!StringUtil.isNullOrEmpty(value)) {
+        if(value.startsWith(ZabbixAgentClient.UNSUPPORTED_HEADER)) {
+            LOG.info("{} <> {}", item.getKey(), value);
+        } else {
             metricMapper.addValueToResource(rule, item, value, resourceBuilder);
         }
     }
