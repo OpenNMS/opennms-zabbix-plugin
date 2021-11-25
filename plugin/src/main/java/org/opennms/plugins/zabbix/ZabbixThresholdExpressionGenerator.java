@@ -205,7 +205,6 @@ public class ZabbixThresholdExpressionGenerator {
     public static class ZabbixThresholdingExpression implements Expression {
         private final Trigger trigger;
         private final String expression;
-        private final ZabbixEventGenerator zabbixEventGenerator = new ZabbixEventGenerator();
 
         public ZabbixThresholdingExpression(Trigger trigger, String expression) {
             this.trigger = Objects.requireNonNull(trigger);
@@ -239,7 +238,7 @@ public class ZabbixThresholdExpressionGenerator {
         @Override
         public String getDsType() {
             if (trigger.getDiscoveryRule() != null) {
-                return ZabbixResourceTypeGenerator.sanitizeResourceName(trigger.getDiscoveryRule().getKey());
+               return trigger.getDiscoveryRule().getKey();
             }
             return "node";
         }
@@ -266,12 +265,12 @@ public class ZabbixThresholdExpressionGenerator {
 
         @Override
         public Optional<String> getTriggeredUEI() {
-            return Optional.of(zabbixEventGenerator.getTriggerEventDefinition(trigger).getUei());
+            return Optional.empty();
         }
 
         @Override
         public Optional<String> getRearmedUEI() {
-            return Optional.of(zabbixEventGenerator.getRearmEventDefinition(trigger).getUei());
+            return Optional.empty();
         }
 
         @Override

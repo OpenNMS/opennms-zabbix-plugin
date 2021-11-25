@@ -11,8 +11,7 @@
             <!-- just a placeholder -->
             <!-- maybe point to additional templates sources? -->
             <cm:property name="key" value="value" />
-            <cm:property name="clientThreadSize" value="5" />
-            <cm:property name="clientPoolSize" value="10" />
+            <cm:property name="clientThreadSize" value="10" />
         </cm:default-properties>
     </cm:property-placeholder>
 
@@ -30,7 +29,6 @@
 
     <bean id="zabbixAgentClientFactory" class="org.opennms.plugins.zabbix.ZabbixAgentClientFactory">
         <argument value="${clientThreadSize}"/>
-        <argument value="${clientPoolSize}"/>
     </bean>
 
     <bean id="zabbixAgentCollectorFactory" class="org.opennms.plugins.zabbix.ZabbixAgentCollectorFactory" >
@@ -62,12 +60,6 @@
 
     <service interface="org.opennms.integration.api.v1.config.thresholding.ThresholdingConfigExtension">
         <bean class="org.opennms.plugins.zabbix.config.ThresholdingConfigExtension">
-            <argument ref="zabbixTemplateHandler" />
-        </bean>
-    </service>
-
-    <service interface="org.opennms.integration.api.v1.config.events.EventConfExtension">
-        <bean class="org.opennms.plugins.zabbix.config.EventConfExtension">
             <argument ref="zabbixTemplateHandler" />
         </bean>
     </service>
