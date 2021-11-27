@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <groupId>org.opennms.plugins.zabbix</groupId>
         <artifactId>zabbix-plugin-parent</artifactId>
@@ -19,8 +20,6 @@
                 <configuration>
                     <instructions>
                         <Karaf-Commands>*</Karaf-Commands>
-                        <!-- Nothing to export -->
-                        <Export-Package></Export-Package>
                     </instructions>
                 </configuration>
             </plugin>
@@ -40,7 +39,27 @@
                                 <source>${basedir}/target/generated-sources</source>
                                 <source>${project.build.directory}/generated-sources/javacc</source>
                             </sources>
-
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>attach-artifacts</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>attach-artifact</goal>
+                        </goals>
+                        <configuration>
+                            <artifacts>
+                                <artifact>
+                                    <file>blueprint-core.xml</file>
+                                    <type>xml</type>
+                                    <classifier>blueprint-core</classifier>
+                                </artifact>
+                                <artifact>
+                                    <file>blueprint-minion.xml</file>
+                                    <type>xml</type>
+                                    <classifier>blueprint-minion</classifier>
+                                </artifact>
+                            </artifacts>
                         </configuration>
                     </execution>
                 </executions>

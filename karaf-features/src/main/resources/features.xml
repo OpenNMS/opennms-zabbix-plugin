@@ -1,7 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <features name="openmms-plugins-zabbix-features" xmlns="http://karaf.apache.org/xmlns/features/v1.4.0">
 
-    <feature name="opennms-plugins-zabbix" description="OpenNMS :: Plugins :: Zabbix" version="${project.version}">
+    <feature name="opennms-plugins-zabbix" description="OpenNMS :: Plugins :: Zabbix :: Core" version="${project.version}">
+        <feature version="${project.version}">zabbix-common</feature>
+        <bundle>blueprint:mvn:org.opennms.plugins.zabbix/zabbix-plugin/${project.version}/xml/blueprint-core</bundle>
+    </feature>
+
+    <feature name="minion-plugins-zabbix" description="Minion :: Plugins :: Zabbix" version="${project.version}">
+        <feature version="${project.version}">zabbix-common</feature>
+        <bundle>blueprint:mvn:org.opennms.plugins.zabbix/zabbix-plugin/${project.version}/xml/blueprint-minion</bundle>
+    </feature>
+
+    <feature name="zabbix-common" description="OpenNMS :: Plugins :: Zabbix :: Common" version="${project.version}">
         <feature dependency="true">aries-blueprint</feature>
         <feature dependency="true">shell</feature>
         <feature version="${opennms.api.version}" dependency="true">opennms-integration-api</feature>
@@ -31,6 +41,8 @@
         <bundle dependency="true">mvn:io.netty/netty-common/${netty.version}</bundle>
         <bundle dependency="true">mvn:io.netty/netty-transport/${netty.version}</bundle>
         <bundle dependency="true">mvn:io.netty/netty-buffer/${netty.version}</bundle>
+        <bundle dependency="true">mvn:io.netty/netty-resolver/${netty.version}</bundle>
+        <bundle dependency="true">mvn:io.netty/netty-codec/${netty.version}</bundle>
     </feature>
 
 </features>

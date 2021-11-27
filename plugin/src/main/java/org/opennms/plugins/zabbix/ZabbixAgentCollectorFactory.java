@@ -1,11 +1,9 @@
 package org.opennms.plugins.zabbix;
 
-import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import org.opennms.integration.api.v1.collectors.CollectionRequest;
 import org.opennms.integration.api.v1.collectors.ServiceCollectorFactory;
@@ -31,9 +29,13 @@ public class ZabbixAgentCollectorFactory implements ServiceCollectorFactory<Zabb
     private final ObjectMapper om;
     private ZabbixAgentClientFactory clientFactory;
 
+    public ZabbixAgentCollectorFactory() {
+        this(null, null);
+    }
+
     public ZabbixAgentCollectorFactory(NodeDao nodeDao, TemplateResolver templateResolver) {
-        this.nodeDao = Objects.requireNonNull(nodeDao);
-        this.templateResolver = Objects.requireNonNull(templateResolver);
+        this.nodeDao = nodeDao;
+        this.templateResolver = templateResolver;
 
         om = new ObjectMapper(new YAMLFactory());
         om.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);

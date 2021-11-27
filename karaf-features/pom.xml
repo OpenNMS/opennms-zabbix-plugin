@@ -84,6 +84,8 @@
                             </framework>
                             <features>
                                 <!-- <feature>opennms-plugins-zabbix</feature> -->
+                                <feature>minion-plugins-zabbix</feature>
+                                <feature>zabbix-common</feature>
                                 <feature>zabbix-guava</feature>
                                 <feature>zabbix-jackson</feature>
                                 <feature>zabbix-netty</feature>
