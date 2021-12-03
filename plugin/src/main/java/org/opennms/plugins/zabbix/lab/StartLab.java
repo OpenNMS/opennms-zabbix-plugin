@@ -24,6 +24,7 @@ import org.opennms.integration.api.v1.events.EventForwarder;
 import org.opennms.integration.api.v1.events.EventListener;
 import org.opennms.integration.api.v1.events.EventSubscriptionService;
 import org.opennms.integration.api.v1.model.InMemoryEvent;
+
 import org.opennms.integration.api.v1.model.Node;
 import org.opennms.integration.api.v1.model.immutables.ImmutableEventParameter;
 import org.opennms.integration.api.v1.model.immutables.ImmutableInMemoryEvent;
@@ -117,13 +118,13 @@ public class StartLab implements Action {
                 }
 
                 @Override
-                public String getNodeCriteria() {
-                    return Integer.toString(node.getId());
+                public int getNodeId() {
+                    return node.getId();
                 }
             };
             final Map<String,Object> collectionParams = ImmutableMap.<String,Object>builder()
                             .put(ZabbixAgentCollector.PORT_KEY, agent.getPort())
-                            .putAll(zabbixServiceCollectorFactory.getRuntimeAttributes(collectionRequest))
+                            .putAll(zabbixServiceCollectorFactory.getRuntimeAttributes(collectionRequest, null))
                             .build();
 
             for (int i = 0; i < 2; i++) {
