@@ -104,13 +104,17 @@ public class ZabbixTemplateHandler {
             }
         } else {
             final Enumeration<URL> ee = bundleContext.getBundle().findEntries("templates", "*.yaml", false);
-            while (ee.hasMoreElements()) {
-                final URL url = ee.nextElement();
-                try (InputStream inputStream = url.openStream()) {
-                    templates.add(om.readValue(inputStream, TemplateMeta.class));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
+            if(ee != null) {
+                while (ee.hasMoreElements()) {
+                    final URL url = ee.nextElement();
+                    try (InputStream inputStream = url.openStream()) {
+                        templates.add(om.readValue(inputStream, TemplateMeta.class));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
+            } else {
+                LOG.error("Templates not found");
             }
         }
         return templates;
