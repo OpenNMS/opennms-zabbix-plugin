@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.nio.file.FileSystems;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -20,7 +21,9 @@ import org.opennms.plugins.zabbix.model.DiscoveryRule;
 import org.opennms.plugins.zabbix.model.Item;
 import org.opennms.plugins.zabbix.model.Template;
 import org.opennms.plugins.zabbix.model.TemplateMeta;
+import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.FrameworkUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,14 +35,8 @@ public class ZabbixTemplateHandler {
     private static final Logger LOG = LoggerFactory.getLogger(ZabbixTemplateHandler.class);
 
     private final ObjectMapper om;
-    private final BundleContext bundleContext;
 
     public ZabbixTemplateHandler() {
-        this(null);
-    }
-
-    public ZabbixTemplateHandler(BundleContext bundleContext) {
-        this.bundleContext = bundleContext;
         om = new ObjectMapper(new YAMLFactory());
         om.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
@@ -92,9 +89,10 @@ public class ZabbixTemplateHandler {
 
     public List<TemplateMeta> loadTemplates() {
         final List<TemplateMeta> templates = new LinkedList<>();
-        if (bundleContext == null) {
-            try {
-                for (String path : getResourceFiles("templates/")) {
+        final Bundle bundle = FrameworkUtil.getBundle(ZabbixTemplateHandler.class);
+        if(bundle == null) {
+            try{
+                for (String path: getResourceFiles("templates")) {
                     try (InputStream inputStream = getResourceAsStream(path)) {
                         templates.add(om.readValue(inputStream, TemplateMeta.class));
                     }
@@ -103,14 +101,18 @@ public class ZabbixTemplateHandler {
                 throw new RuntimeException(e);
             }
         } else {
-            final Enumeration<URL> ee = bundleContext.getBundle().findEntries("templates", "*.yaml", false);
-            while (ee.hasMoreElements()) {
-                final URL url = ee.nextElement();
-                try (InputStream inputStream = url.openStream()) {
-                    templates.add(om.readValue(inputStream, TemplateMeta.class));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
+            final Enumeration<URL> ee = bundle.findEntries("templates", "*.yaml", false);
+            if(ee != null) {
+                while (ee.hasMoreElements()) {
+                    final URL url = ee.nextElement();
+                    try (InputStream inputStream = url.openStream()) {
+                        templates.add(om.readValue(inputStream, TemplateMeta.class));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
+            } else {
+                LOG.error("Templates not found");
             }
         }
         return templates;
@@ -144,7 +146,7 @@ public class ZabbixTemplateHandler {
                     if (!resource.endsWith(".yaml")) {
                         continue;
                     }
-                    filenames.add(path + resource);
+                    filenames.add(path + FileSystems.getDefault().getSeparator() + resource);
                 }
             }
         }

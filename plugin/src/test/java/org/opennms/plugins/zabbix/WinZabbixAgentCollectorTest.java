@@ -72,11 +72,11 @@ public class WinZabbixAgentCollectorTest {
         //ZabbixTemplateHandler zabbixTemplateHandler = new ZabbixTemplateHandler();
         TemplateResolver templateResolver = mock(TemplateResolver.class);
         List<Template> windowsTemplates = getTemplates();
-        when(templateResolver.getTemplatesForNode(null)).thenReturn(windowsTemplates);
+        when(templateResolver.getTemplatesForNode(anyString())).thenReturn(windowsTemplates);
         ZabbixAgentClientFactory clientFactory = new ZabbixAgentClientFactory();
         ZabbixAgentCollectorFactory zabbixAgentCollectorFactory = new ZabbixAgentCollectorFactory(nodeDao, templateResolver);
         zabbixAgentCollectorFactory.setClientFactory(clientFactory);
-        Map<String, Object> runtimeAttributes = zabbixAgentCollectorFactory.getRuntimeAttributes(request);
+        Map<String, Object> runtimeAttributes = zabbixAgentCollectorFactory.getRuntimeAttributes(request, null);
         ZabbixAgentCollector collector = zabbixAgentCollectorFactory.createCollector();
         Map<String, Object> collectorOptions = ImmutableMap.<String, Object>builder()
                 .put(ZabbixAgentCollector.PORT_KEY, port)
@@ -102,7 +102,7 @@ public class WinZabbixAgentCollectorTest {
         //ZabbixTemplateHandler zabbixTemplateHandler = new ZabbixTemplateHandler();
         TemplateResolver templateResolver = mock(TemplateResolver.class);
         List<Template> windowsTemplates = getTemplates();
-        when(templateResolver.getTemplatesForNode(null)).thenReturn(windowsTemplates);
+        when(templateResolver.getTemplatesForNode(anyString())).thenReturn(windowsTemplates);
         ZabbixAgentClient client = new ZabbixAgentClientFactory().createClient(address, port);
         ZabbixAgentClientFactory mockClientFactory = mock(ZabbixAgentClientFactory.class);
         ZabbixAgentClient mockClient = createMockClient();
@@ -110,7 +110,7 @@ public class WinZabbixAgentCollectorTest {
 
         ZabbixAgentCollectorFactory zabbixAgentCollectorFactory = new ZabbixAgentCollectorFactory(nodeDao, templateResolver);
         zabbixAgentCollectorFactory.setClientFactory(mockClientFactory);
-        Map<String, Object> runtimeAttributes = zabbixAgentCollectorFactory.getRuntimeAttributes(request);
+        Map<String, Object> runtimeAttributes = zabbixAgentCollectorFactory.getRuntimeAttributes(request, null);
         ZabbixAgentCollector collector = new ZabbixAgentCollector(mockClientFactory);
         Map<String, Object> collectorOptions = ImmutableMap.<String, Object>builder()
                 .put(ZabbixAgentCollector.PORT_KEY, port)

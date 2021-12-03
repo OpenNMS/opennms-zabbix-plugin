@@ -60,18 +60,18 @@ public class ZabbixAgentCollectorFactory implements ServiceCollectorFactory<Zabb
     }
 
     @Override
-    public Map<String, Object> getRuntimeAttributes(CollectionRequest collectionRequest) {
+    public Map<String, Object> getRuntimeAttributes(CollectionRequest collectionRequest, Map<String, Object> parameters) {
         final Map<String, Object> attributes = new LinkedHashMap<>();
 
         int nodeId = 0;
-        final Node node = nodeDao.getNodeByCriteria(collectionRequest.getNodeCriteria());
+        final Node node = nodeDao.getNodeById(collectionRequest.getNodeId());
         if (node != null) {
             nodeId = node.getId();
         }
         attributes.put(NODE_ID_KEY, Integer.toString(nodeId));
 
         // Find the templates for the node
-        final List<Template> templates = templateResolver.getTemplatesForNode(collectionRequest.getNodeCriteria());
+        final List<Template> templates = templateResolver.getTemplatesForNode(Integer.toString(collectionRequest.getNodeId()));
         attributes.put(TEMPLATES_KEY, templates);
         return attributes;
     }

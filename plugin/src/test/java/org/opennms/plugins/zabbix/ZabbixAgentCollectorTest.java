@@ -2,6 +2,7 @@ package org.opennms.plugins.zabbix;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -42,11 +43,11 @@ public class ZabbixAgentCollectorTest {
         NodeDao nodeDao = mock(NodeDao.class);
         ZabbixTemplateHandler zabbixTemplateHandler = new ZabbixTemplateHandler();
         TemplateResolver templateResolver = mock(TemplateResolver.class);
-        when(templateResolver.getTemplatesForNode(null)).thenReturn(getTemplates());
+        when(templateResolver.getTemplatesForNode(anyString())).thenReturn(getTemplates());
         ZabbixAgentClientFactory clientFactory =new ZabbixAgentClientFactory();
         ZabbixAgentCollectorFactory zabbixAgentCollectorFactory = new ZabbixAgentCollectorFactory(nodeDao, templateResolver);
         zabbixAgentCollectorFactory.setClientFactory(clientFactory);
-        Map<String, Object> runtimeAttributes = zabbixAgentCollectorFactory.getRuntimeAttributes(request);
+        Map<String, Object> runtimeAttributes = zabbixAgentCollectorFactory.getRuntimeAttributes(request, null);
         ZabbixAgentCollector collector = zabbixAgentCollectorFactory.createCollector();
         Map<String, Object> collectorOptions = ImmutableMap.<String, Object>builder()
                 .put(ZabbixAgentCollector.PORT_KEY, zabbixAgent.getPort())
