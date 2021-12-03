@@ -17,9 +17,7 @@
 
     <reference id="nodeDao" interface="org.opennms.integration.api.v1.dao.NodeDao" availability="mandatory"/>
 
-    <bean id="zabbixTemplateHandler" class="org.opennms.plugins.zabbix.ZabbixTemplateHandler">
-        <argument ref="blueprintBundleContext" />
-    </bean>
+    <bean id="zabbixTemplateHandler" class="org.opennms.plugins.zabbix.ZabbixTemplateHandler" />
 
     <bean id="templateResolver" class="org.opennms.plugins.zabbix.TemplateResolver">
         <argument ref="nodeDao" />
