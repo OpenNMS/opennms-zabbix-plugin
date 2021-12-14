@@ -91,3 +91,12 @@ NodeLevelResource[nodeId=4, path=null]
                 Attribute[agent.hostname:Zabbix server]
                 Attribute[agent.version:5.4.4]
 ```
+
+## Installing
+
+OpenNMS:
+
+```
+echo 'opennms-plugins-zabbix wait-for-kar=opennms-zabbix-plugin' $OPENNMS_HOME/etc/featuresBoot.d/zabbix.boot
+```
+

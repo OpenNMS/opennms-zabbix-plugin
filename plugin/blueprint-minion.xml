@@ -20,8 +20,6 @@
     </bean>
 
     <bean id="zabbixAgentCollectorFactory" class="org.opennms.plugins.zabbix.ZabbixAgentCollectorFactory" >
-        <argument ref="nodeDao" />
-        <argument ref="templateResolver" />
         <property name="clientFactory" ref="zabbixAgentClientFactory" />
     </bean>
     <service interface="org.opennms.integration.api.v1.collectors.ServiceCollectorFactory" ref="zabbixAgentCollectorFactory" >
